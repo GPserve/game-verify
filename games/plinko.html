@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plinko Fairness Verification | GanPlay Provably Fair</title>
+  <meta name="description" content="GanPlay Plinko Provably Fair player self-service verification. Enter Server Seed / Client Seed / Nonce / Rows to verify the slot index of the round.">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <div class="page">
+    <header class="site-header">
+      <h1 class="site-title">Plinko Fairness Verification</h1>
+      <p class="site-subtitle">GanPlay Provably Fair Player Self-Service Verification</p>
+    </header>
+
+    <main class="site-main">
+      <section class="verify-card">
+        <form class="verify-form" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="server-seed">Server Seed</label>
+            <input
+              class="form-input"
+              type="text"
+              id="server-seed"
+              name="server-seed"
+              placeholder="Enter the Server Seed for this round"
+              autocomplete="off"
+              spellcheck="false"
+            >
+            <span class="form-error" id="server-seed-error" hidden>Server Seed is required</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="client-seed">Client Seed</label>
+            <input
+              class="form-input"
+              type="text"
+              id="client-seed"
+              name="client-seed"
+              placeholder="Enter the Client Seed for this round"
+              autocomplete="off"
+              spellcheck="false"
+            >
+            <span class="form-error" id="client-seed-error" hidden>Client Seed is required</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="nonce">Nonce</label>
+            <input
+              class="form-input"
+              type="number"
+              id="nonce"
+              name="nonce"
+              placeholder="Enter the round number (Nonce)"
+              step="1"
+              min="0"
+              value="0"
+            >
+            <span class="form-error" id="nonce-error" hidden>Nonce is required</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="rows">Rows</label>
+            <input
+              class="form-input"
+              type="number"
+              id="rows"
+              name="rows"
+              placeholder="Enter the number of rows (8-16)"
+              step="1"
+              min="8"
+              max="16"
+              value="8"
+            >
+            <span class="form-error" id="rows-error" hidden>Rows is required</span>
+          </div>
+
+          <button class="verify-button" type="submit">Verify / Calculate</button>
+        </form>
+      </section>
+
+      <section class="result-card" id="result-card" hidden>
+        <p class="result-label">Slot Index</p>
+        <p class="result-value" id="slot-index-result">--</p>
+        <p class="result-label">Directions (0 = Left, 1 = Right)</p>
+        <p class="result-value" id="directions-result">--</p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>&copy; 2026 GanPlay. All rights reserved.</p>
+    </footer>
+  </div>
+
+  <script src="../assets/js/plinko.js"></script>
+  <script>
+    (() => {
+      const serverSeedInput = document.getElementById("server-seed");
+      const clientSeedInput = document.getElementById("client-seed");
+      const nonceInput = document.getElementById("nonce");
+      const rowsInput = document.getElementById("rows");
+      const slotIndexResultEl = document.getElementById("slot-index-result");
+      const directionsResultEl = document.getElementById("directions-result");
+      const resultCardEl = document.getElementById("result-card");
+      const serverSeedErrorEl = document.getElementById("server-seed-error");
+      const clientSeedErrorEl = document.getElementById("client-seed-error");
+      const nonceErrorEl = document.getElementById("nonce-error");
+      const rowsErrorEl = document.getElementById("rows-error");
+      const formEl = document.querySelector(".verify-form");
+
+      // 每次觸發計算給予遞增 token，僅套用最新一次計算結果，
+      // 避免快速連續送出時較舊的非同步計算覆蓋較新的結果。
+      let latestToken = 0;
+
+      const parseIntField = (rawValue, fallback) => {
+        const parsed = Math.trunc(Number(rawValue));
+        return Number.isFinite(parsed) ? parsed : fallback;
+      };
+
+      const hideResult = () => {
+        resultCardEl.hidden = true;
+        slotIndexResultEl.textContent = "--";
+        directionsResultEl.textContent = "--";
+      };
+
+      const validateRequired = (serverSeed, clientSeed, nonceRaw, rowsRaw) => {
+        const serverSeedMissing = serverSeed === "";
+        const clientSeedMissing = clientSeed === "";
+        const nonceMissing = nonceRaw === "";
+        const rowsMissing = rowsRaw === "";
+
+        serverSeedErrorEl.hidden = !serverSeedMissing;
+        clientSeedErrorEl.hidden = !clientSeedMissing;
+        nonceErrorEl.hidden = !nonceMissing;
+        rowsErrorEl.hidden = !rowsMissing;
+
+        serverSeedInput.classList.toggle("is-invalid", serverSeedMissing);
+        clientSeedInput.classList.toggle("is-invalid", clientSeedMissing);
+        nonceInput.classList.toggle("is-invalid", nonceMissing);
+        rowsInput.classList.toggle("is-invalid", rowsMissing);
+
+        return (
+          !serverSeedMissing &&
+          !clientSeedMissing &&
+          !nonceMissing &&
+          !rowsMissing
+        );
+      };
+
+      const recompute = async () => {
+        const serverSeed = serverSeedInput.value;
+        const clientSeed = clientSeedInput.value;
+        const nonceRaw = nonceInput.value;
+        const rowsRaw = rowsInput.value;
+
+        // 空值必填驗證：任一欄位為空字串即擋下（不觸發 HMAC 計算），
+        // 以字串層面判空，數值 0（nonce）為合法值不擋，確保結果區塊不殘留舊值。
+        if (!validateRequired(serverSeed, clientSeed, nonceRaw, rowsRaw)) {
+          hideResult();
+          return;
+        }
+
+        const token = ++latestToken;
+        const nonce = parseIntField(nonceRaw, 0);
+        const rows = parseIntField(rowsRaw, 8);
+
+        const { directions, slotIndex } = await GanPlinko.computePlinkoResult(
+          serverSeed,
+          clientSeed,
+          nonce,
+          rows,
+        );
+
+        if (token !== latestToken) return;
+        slotIndexResultEl.textContent = slotIndex;
+        directionsResultEl.textContent = directions.join(", ");
+        resultCardEl.hidden = false;
+      };
+
+      formEl.addEventListener("submit", (event) => {
+        event.preventDefault();
+        recompute();
+      });
+    })();
+  </script>
+</body>
+</html>

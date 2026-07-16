@@ -1,0 +1,233 @@
+:root {
+  --color-bg: #0f172a;
+  --color-surface: #1e293b;
+  --color-border: #334155;
+  --color-text: #e2e8f0;
+  --color-text-muted: #94a3b8;
+  --color-accent: #38bdf8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC",
+    "Microsoft JhengHei", Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+}
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+}
+
+.site-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.site-title {
+  margin: 0 0 0.5rem;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.site-subtitle {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--color-accent);
+}
+
+.site-main {
+  width: 100%;
+  max-width: 640px;
+}
+
+.notice-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 1.5rem 1.75rem;
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+}
+
+.notice-card p {
+  margin: 0 0 0.75rem;
+}
+
+.notice-card p:last-child {
+  margin-bottom: 0;
+}
+
+.notice-status {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+/* 入口頁：遊戲驗證頁導覽清單 */
+.game-list {
+  margin-top: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.game-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  color: var(--color-text);
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.game-list-item:hover {
+  border-color: var(--color-accent);
+}
+
+.game-list-name {
+  color: var(--color-text);
+}
+
+.game-list-arrow {
+  color: var(--color-accent);
+}
+
+.site-footer {
+  margin-top: 2.5rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+/* 驗證頁：輸入表單卡片（dice.html 等遊戲驗證頁共用） */
+.verify-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 1.5rem 1.75rem;
+  margin-top: 1.25rem;
+}
+
+.verify-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.form-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.form-input {
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.95rem;
+  color: var(--color-text);
+  font-family: inherit;
+}
+
+.form-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.form-error {
+  font-size: 0.8rem;
+  color: #f87171;
+}
+
+.form-input.is-invalid {
+  border: 1px solid #f87171;
+}
+
+.verify-button {
+  margin-top: 0.25rem;
+  background-color: var(--color-accent);
+  color: var(--color-bg);
+  border: none;
+  border-radius: 8px;
+  padding: 0.65rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.verify-button:hover {
+  opacity: 0.9;
+}
+
+/* 驗證頁：即時計算結果卡片 */
+.result-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 1.5rem 1.75rem;
+  margin-top: 1.25rem;
+  text-align: center;
+}
+
+.result-label {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.result-value {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 驗證頁：返回入口導覽 */
+.back-nav {
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+.back-link {
+  color: var(--color-accent);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}

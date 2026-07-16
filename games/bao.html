@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bao Fairness Verification | GanPlay Provably Fair</title>
+  <meta name="description" content="GanPlay Bao Provably Fair player self-service verification. Enter Server Seed / Client Seed / Nonce / Bone Count to verify the bone positions of the round.">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <div class="page">
+    <header class="site-header">
+      <h1 class="site-title">Bao Fairness Verification</h1>
+      <p class="site-subtitle">GanPlay Provably Fair Player Self-Service Verification</p>
+    </header>
+
+    <main class="site-main">
+      <section class="verify-card">
+        <form class="verify-form" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="server-seed">Server Seed</label>
+            <input
+              class="form-input"
+              type="text"
+              id="server-seed"
+              name="server-seed"
+              placeholder="Enter the Server Seed for this round"
+              autocomplete="off"
+              spellcheck="false"
+            >
+            <span class="form-error" id="server-seed-error" hidden>Server Seed is required</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="client-seed">Client Seed</label>
+            <input
+              class="form-input"
+              type="text"
+              id="client-seed"
+              name="client-seed"
+              placeholder="Enter the Client Seed for this round"
+              autocomplete="off"
+              spellcheck="false"
+            >
+            <span class="form-error" id="client-seed-error" hidden>Client Seed is required</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="nonce">Nonce</label>
+            <input
+              class="form-input"
+              type="number"
+              id="nonce"
+              name="nonce"
+              placeholder="Enter the round number (Nonce)"
+              step="1"
+              min="0"
+              value="0"
+            >
+            <span class="form-error" id="nonce-error" hidden>Nonce is required</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="bone-count">Bone Count</label>
+            <select class="form-input" id="bone-count" name="bone-count">
+              <option value="1" selected>1</option>
+              <option value="3">3</option>
+              <option value="5">5</option>
+              <option value="10">10</option>
+            </select>
+          </div>
+
+          <button class="verify-button" type="submit">Verify / Calculate</button>
+        </form>
+      </section>
+
+      <section class="result-card" id="result-card" hidden>
+        <p class="result-label">Bone Positions</p>
+        <p class="result-value" id="bone-positions-result">--</p>
+        <p class="result-label">Death Point</p>
+        <p class="result-value" id="death-point-result">--</p>
+        <p class="result-label">Full Order (20)</p>
+        <p class="result-value" id="full-order-result">--</p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>&copy; 2026 GanPlay. All rights reserved.</p>
+    </footer>
+  </div>
+
+  <script src="../assets/js/chicken.js"></script>
+  <script>
+    (() => {
+      const TOTAL_CELLS = 20;
+
+      const serverSeedInput = document.getElementById("server-seed");
+      const clientSeedInput = document.getElementById("client-seed");
+      const nonceInput = document.getElementById("nonce");
+      const boneCountInput = document.getElementById("bone-count");
+      const bonePositionsResultEl = document.getElementById("bone-positions-result");
+      const deathPointResultEl = document.getElementById("death-point-result");
+      const fullOrderResultEl = document.getElementById("full-order-result");
+      const resultCardEl = document.getElementById("result-card");
+      const serverSeedErrorEl = document.getElementById("server-seed-error");
+      const clientSeedErrorEl = document.getElementById("client-seed-error");
+      const nonceErrorEl = document.getElementById("nonce-error");
+      const formEl = document.querySelector(".verify-form");
+
+      // 每次觸發計算給予遞增 token，僅套用最新一次計算結果，
+      // 避免快速連續送出時較舊的非同步計算覆蓋較新的結果。
+      let latestToken = 0;
+
+      const parseIntField = (rawValue, fallback) => {
+        const parsed = Math.trunc(Number(rawValue));
+        return Number.isFinite(parsed) ? parsed : fallback;
+      };
+
+      const hideResult = () => {
+        resultCardEl.hidden = true;
+        bonePositionsResultEl.textContent = "--";
+        deathPointResultEl.textContent = "--";
+        fullOrderResultEl.textContent = "--";
+      };
+
+      // Bone Count 為 select，永遠有值（天然無空值），僅檢 server/client/nonce 三欄。
+      const validateRequired = (serverSeed, clientSeed, nonceRaw) => {
+        const serverSeedMissing = serverSeed === "";
+        const clientSeedMissing = clientSeed === "";
+        const nonceMissing = nonceRaw === "";
+
+        serverSeedErrorEl.hidden = !serverSeedMissing;
+        clientSeedErrorEl.hidden = !clientSeedMissing;
+        nonceErrorEl.hidden = !nonceMissing;
+
+        serverSeedInput.classList.toggle("is-invalid", serverSeedMissing);
+        clientSeedInput.classList.toggle("is-invalid", clientSeedMissing);
+        nonceInput.classList.toggle("is-invalid", nonceMissing);
+
+        return !serverSeedMissing && !clientSeedMissing && !nonceMissing;
+      };
+
+      const recompute = async () => {
+        const serverSeed = serverSeedInput.value;
+        const clientSeed = clientSeedInput.value;
+        const nonceRaw = nonceInput.value;
+        const boneCountRaw = boneCountInput.value;
+
+        // 空值必填驗證：server_seed / client_seed / nonce 任一為空字串，
+        // 不觸發 HMAC 計算，以字串層面判空，數值 0（nonce）為合法值不擋，
+        // 確保結果區塊不殘留舊值。bone-count 為 select 天然有值，無需空值檢查。
+        if (!validateRequired(serverSeed, clientSeed, nonceRaw)) {
+          hideResult();
+          return;
+        }
+
+        const token = ++latestToken;
+        const nonce = parseIntField(nonceRaw, 0);
+        const boneCount = parseIntField(boneCountRaw, 3);
+
+        const { fullSequence, bonePositions, deathPoint } =
+          await GanChicken.computeChickenResult(
+            serverSeed,
+            clientSeed,
+            nonce,
+            boneCount,
+            TOTAL_CELLS,
+          );
+
+        if (token !== latestToken) return;
+        bonePositionsResultEl.textContent = bonePositions.join(", ");
+        deathPointResultEl.textContent = String(deathPoint);
+        fullOrderResultEl.textContent = fullSequence.join(", ");
+        resultCardEl.hidden = false;
+      };
+
+      formEl.addEventListener("submit", (event) => {
+        event.preventDefault();
+        recompute();
+      });
+    })();
+  </script>
+</body>
+</html>
