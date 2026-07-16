@@ -81,8 +81,8 @@
       </section>
 
       <section class="result-card" id="result-card" hidden>
-        <p class="result-label">Flip Result</p>
-        <p class="result-value" id="flip-result">--</p>
+        <p class="result-label">Flip Results</p>
+        <ol class="result-list" id="flip-result-list"></ol>
       </section>
     </main>
 
@@ -98,7 +98,7 @@
       const clientSeedInput = document.getElementById("client-seed");
       const nonceInput = document.getElementById("nonce");
       const roundInput = document.getElementById("round");
-      const resultEl = document.getElementById("flip-result");
+      const resultListEl = document.getElementById("flip-result-list");
       const resultCardEl = document.getElementById("result-card");
       const serverSeedErrorEl = document.getElementById("server-seed-error");
       const clientSeedErrorEl = document.getElementById("client-seed-error");
@@ -117,7 +117,7 @@
 
       const hideResult = () => {
         resultCardEl.hidden = true;
-        resultEl.textContent = "--";
+        resultListEl.replaceChildren();
       };
 
       const validateRequired = (serverSeed, clientSeed, nonceRaw, roundRaw) => {
@@ -156,17 +156,39 @@
 
         const token = ++latestToken;
         const nonce = parseIntField(nonceRaw, 0);
-        const round = parseIntField(roundRaw, 1);
+        const roundCount = parseIntField(roundRaw, 1);
 
-        const result = await GanFlip.computeFlipResult(
-          serverSeed,
-          clientSeed,
-          nonce,
-          round,
+        // nonce 於整串計算中固定不變，逐一對 round = 1..N 呼叫
+        // GanFlip.computeFlipResult，收集每一局結果供玩家對照整串注單。
+        const rounds = Array.from({ length: roundCount }, (_, i) => i + 1);
+        const results = await Promise.all(
+          rounds.map((round) =>
+            GanFlip.computeFlipResult(serverSeed, clientSeed, nonce, round),
+          ),
         );
 
+        // 整批結果套用最新 token，避免快速連續送出時較舊的非同步
+        // 計算覆蓋較新的結果。
         if (token !== latestToken) return;
-        resultEl.textContent = result === 0 ? "Heads (0)" : "Tails (1)";
+
+        const items = rounds.map((round, i) => {
+          const resultText = results[i] === 0 ? "Heads (0)" : "Tails (1)";
+          const li = document.createElement("li");
+          li.className = "result-list-item";
+
+          const roundSpan = document.createElement("span");
+          roundSpan.className = "result-list-round";
+          roundSpan.textContent = `Round ${round}`;
+
+          const valueSpan = document.createElement("span");
+          valueSpan.className = "result-list-value";
+          valueSpan.textContent = resultText;
+
+          li.append(roundSpan, valueSpan);
+          return li;
+        });
+
+        resultListEl.replaceChildren(...items);
         resultCardEl.hidden = false;
       };
 
