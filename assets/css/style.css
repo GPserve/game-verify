@@ -315,4 +315,5 @@ body {
 /* 少量卡牌的分組列（baccarat 閒/莊/候補）：固定卡寬、不撐滿容器 */
 .card-grid-row {
   grid-template-columns: repeat(auto-fill, 64px);
+  justify-content: center;
 }
