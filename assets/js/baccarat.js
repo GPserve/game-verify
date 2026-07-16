@@ -67,6 +67,17 @@ const GanBaccarat = (() => {
     return `${SUIT_SYMBOLS[suitIndex]}${RANK_LABELS[rank]}`;
   };
 
+  // 拆解版解碼（供卡牌視覺呈現）：紅色花色 = ♥(1)、♦(3)。
+  const decodeCardParts = (card) => {
+    const suitIndex = ((card & 240) >> 4) - 10;
+    const rank = card % 16;
+    return {
+      rank: RANK_LABELS[rank],
+      suit: SUIT_SYMBOLS[suitIndex],
+      isRed: suitIndex === 1 || suitIndex === 3,
+    };
+  };
+
   const drawCard = async (serverSeed, clientSeed, nonce, i) => {
     const message = `${clientSeed}:${nonce}:${i}`;
     const hashHex = await hmacSha256Hex(serverSeed, message);
@@ -93,5 +104,5 @@ const GanBaccarat = (() => {
     return { cards, readable };
   };
 
-  return { computeBaccaratResult, decodeCard };
+  return { computeBaccaratResult, decodeCard, decodeCardParts };
 })();
