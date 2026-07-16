@@ -312,8 +312,14 @@ body {
   color: var(--color-text-muted);
 }
 
-/* 少量卡牌的分組列（baccarat 閒/莊/候補）：固定卡寬、不撐滿容器 */
+/* 少量卡牌的分組列（baccarat 閒/莊/候補）：固定卡寬、整組置中
+   （不用 grid auto-fill——空軌會填滿容器寬、justify-content 置中無效） */
 .card-grid-row {
-  grid-template-columns: repeat(auto-fill, 64px);
+  display: flex;
+  flex-wrap: wrap;
   justify-content: center;
+}
+
+.card-grid-row .playing-card {
+  width: 64px;
 }
