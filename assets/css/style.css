@@ -261,3 +261,53 @@ body {
 .back-link:hover {
   text-decoration: underline;
 }
+
+/* 驗證頁：卡牌視覺呈現（blackjack 牌序列） */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.playing-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.playing-card-face {
+  width: 100%;
+  aspect-ratio: 5 / 7;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.25);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  color: #1e293b;
+  font-weight: 700;
+}
+
+.playing-card-face.is-red {
+  color: #dc2626;
+}
+
+.playing-card-rank {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.playing-card-suit {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.playing-card-index {
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
