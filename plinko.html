@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Baccarat Fairness Verification | GanPlay Provably Fair</title>
-  <meta name="description" content="GanPlay Baccarat Provably Fair player self-service verification. Enter Server Seed / Client Seed / Nonce to verify the full 6-card sequence of the round.">
-  <link rel="stylesheet" href="../assets/css/style.css">
+  <title>Plinko Fairness Verification | GanPlay Provably Fair</title>
+  <meta name="description" content="GanPlay Plinko Provably Fair player self-service verification. Enter Server Seed / Client Seed / Nonce / Rows to verify the slot index of the round.">
+  <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
   <div class="page">
     <header class="site-header">
-      <h1 class="site-title">Baccarat Fairness Verification</h1>
+      <h1 class="site-title">Plinko Fairness Verification</h1>
       <p class="site-subtitle">GanPlay Provably Fair Player Self-Service Verification</p>
     </header>
 
@@ -60,17 +60,31 @@
             <span class="form-error" id="nonce-error" hidden>Nonce is required</span>
           </div>
 
+          <div class="form-group">
+            <label class="form-label" for="rows">Rows</label>
+            <input
+              class="form-input"
+              type="number"
+              id="rows"
+              name="rows"
+              placeholder="Enter the number of rows (8-16)"
+              step="1"
+              min="8"
+              max="16"
+              value="8"
+            >
+            <span class="form-error" id="rows-error" hidden>Rows is required</span>
+          </div>
+
           <button class="verify-button" type="submit">Verify / Calculate</button>
         </form>
       </section>
 
       <section class="result-card" id="result-card" hidden>
-        <p class="result-label">Player (index 0-1)</p>
-        <div class="card-grid card-grid-row" id="player-grid"></div>
-        <p class="result-label">Banker (index 2-3)</p>
-        <div class="card-grid card-grid-row" id="banker-grid"></div>
-        <p class="result-label">Candidate Slots (index 4-5)</p>
-        <div class="card-grid card-grid-row" id="candidate-grid"></div>
+        <p class="result-label">Slot Index</p>
+        <p class="result-value" id="slot-index-result">--</p>
+        <p class="result-label">Directions (0 = Left, 1 = Right)</p>
+        <p class="result-value" id="directions-result">--</p>
       </section>
     </main>
 
@@ -79,105 +93,88 @@
     </footer>
   </div>
 
-  <script src="../assets/js/baccarat.js"></script>
+  <script src="assets/js/plinko.js"></script>
   <script>
     (() => {
       const serverSeedInput = document.getElementById("server-seed");
       const clientSeedInput = document.getElementById("client-seed");
       const nonceInput = document.getElementById("nonce");
-      const playerGridEl = document.getElementById("player-grid");
-      const bankerGridEl = document.getElementById("banker-grid");
-      const candidateGridEl = document.getElementById("candidate-grid");
+      const rowsInput = document.getElementById("rows");
+      const slotIndexResultEl = document.getElementById("slot-index-result");
+      const directionsResultEl = document.getElementById("directions-result");
       const resultCardEl = document.getElementById("result-card");
       const serverSeedErrorEl = document.getElementById("server-seed-error");
       const clientSeedErrorEl = document.getElementById("client-seed-error");
       const nonceErrorEl = document.getElementById("nonce-error");
+      const rowsErrorEl = document.getElementById("rows-error");
       const formEl = document.querySelector(".verify-form");
 
       // 每次觸發計算給予遞增 token，僅套用最新一次計算結果，
       // 避免快速連續送出時較舊的非同步計算覆蓋較新的結果。
       let latestToken = 0;
 
-      const parseNonce = (rawValue) => {
+      const parseIntField = (rawValue, fallback) => {
         const parsed = Math.trunc(Number(rawValue));
-        return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+        return Number.isFinite(parsed) ? parsed : fallback;
       };
 
       const hideResult = () => {
         resultCardEl.hidden = true;
-        playerGridEl.replaceChildren();
-        bankerGridEl.replaceChildren();
-        candidateGridEl.replaceChildren();
+        slotIndexResultEl.textContent = "--";
+        directionsResultEl.textContent = "--";
       };
 
-      const renderCardTile = (card, index) => {
-        const parts = GanBaccarat.decodeCardParts(card);
-
-        const face = document.createElement("div");
-        face.className = `playing-card-face${parts.isRed ? " is-red" : ""}`;
-        const rankEl = document.createElement("span");
-        rankEl.className = "playing-card-rank";
-        rankEl.textContent = parts.rank;
-        const suitEl = document.createElement("span");
-        suitEl.className = "playing-card-suit";
-        suitEl.textContent = parts.suit;
-        face.append(rankEl, suitEl);
-
-        const indexEl = document.createElement("span");
-        indexEl.className = "playing-card-index";
-        indexEl.textContent = String(index);
-
-        const tile = document.createElement("div");
-        tile.className = "playing-card";
-        tile.append(face, indexEl);
-        return tile;
-      };
-
-      const validateRequired = (serverSeed, clientSeed, nonceRaw) => {
+      const validateRequired = (serverSeed, clientSeed, nonceRaw, rowsRaw) => {
         const serverSeedMissing = serverSeed === "";
         const clientSeedMissing = clientSeed === "";
         const nonceMissing = nonceRaw === "";
+        const rowsMissing = rowsRaw === "";
 
         serverSeedErrorEl.hidden = !serverSeedMissing;
         clientSeedErrorEl.hidden = !clientSeedMissing;
         nonceErrorEl.hidden = !nonceMissing;
+        rowsErrorEl.hidden = !rowsMissing;
 
         serverSeedInput.classList.toggle("is-invalid", serverSeedMissing);
         clientSeedInput.classList.toggle("is-invalid", clientSeedMissing);
         nonceInput.classList.toggle("is-invalid", nonceMissing);
+        rowsInput.classList.toggle("is-invalid", rowsMissing);
 
-        return !serverSeedMissing && !clientSeedMissing && !nonceMissing;
+        return (
+          !serverSeedMissing &&
+          !clientSeedMissing &&
+          !nonceMissing &&
+          !rowsMissing
+        );
       };
 
       const recompute = async () => {
         const serverSeed = serverSeedInput.value;
         const clientSeed = clientSeedInput.value;
         const nonceRaw = nonceInput.value;
+        const rowsRaw = rowsInput.value;
 
-        // 空值必填驗證：server_seed / client_seed / nonce 任一為空字串，
-        // 不觸發 HMAC 計算（避免呼叫 crypto API 拋出 Zero-length key 例外，
-        // 也避免將「未輸入 nonce」與「明確輸入 0」混為一談），
-        // 以必填提示擋下，並確保結果區塊不殘留舊值。
-        if (!validateRequired(serverSeed, clientSeed, nonceRaw)) {
+        // 空值必填驗證：任一欄位為空字串即擋下（不觸發 HMAC 計算），
+        // 以字串層面判空，數值 0（nonce）為合法值不擋，確保結果區塊不殘留舊值。
+        if (!validateRequired(serverSeed, clientSeed, nonceRaw, rowsRaw)) {
           hideResult();
           return;
         }
 
         const token = ++latestToken;
-        const nonce = parseNonce(nonceRaw);
+        const nonce = parseIntField(nonceRaw, 0);
+        const rows = parseIntField(rowsRaw, 8);
 
-        const { cards } = await GanBaccarat.computeBaccaratResult(
+        const { directions, slotIndex } = await GanPlinko.computePlinkoResult(
           serverSeed,
           clientSeed,
           nonce,
+          rows,
         );
 
         if (token !== latestToken) return;
-        // 業務語意分組（僅供頁面分組呈現，不影響 6 張牌的計算本身）：
-        // index 0,1 = 閒家；index 2,3 = 莊家；index 4,5 = 候補槽。index 為全局序 0-5。
-        playerGridEl.replaceChildren(...cards.slice(0, 2).map((card, i) => renderCardTile(card, i)));
-        bankerGridEl.replaceChildren(...cards.slice(2, 4).map((card, i) => renderCardTile(card, i + 2)));
-        candidateGridEl.replaceChildren(...cards.slice(4, 6).map((card, i) => renderCardTile(card, i + 4)));
+        slotIndexResultEl.textContent = slotIndex;
+        directionsResultEl.textContent = directions.join(", ");
         resultCardEl.hidden = false;
       };
 

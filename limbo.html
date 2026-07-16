@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Flip Fairness Verification | GanPlay Provably Fair</title>
-  <meta name="description" content="GanPlay Flip Provably Fair player self-service verification. Enter Server Seed / Client Seed / Nonce / Round to verify the result of the round.">
-  <link rel="stylesheet" href="../assets/css/style.css">
+  <title>Limbo Fairness Verification | GanPlay Provably Fair</title>
+  <meta name="description" content="GanPlay Limbo Provably Fair player self-service verification. Enter Server Seed / Client Seed / Nonce / House Edge to verify the crash point of the round.">
+  <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
   <div class="page">
     <header class="site-header">
-      <h1 class="site-title">Flip Fairness Verification</h1>
+      <h1 class="site-title">Limbo Fairness Verification</h1>
       <p class="site-subtitle">GanPlay Provably Fair Player Self-Service Verification</p>
     </header>
 
@@ -61,19 +61,18 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="round">Round</label>
+            <label class="form-label" for="house-edge">House Edge (%)</label>
             <input
               class="form-input"
               type="number"
-              id="round"
-              name="round"
-              placeholder="Enter the flip round (1-based)"
-              step="1"
-              min="1"
-              max="20"
+              id="house-edge"
+              name="house-edge"
+              placeholder="House edge % (= 100 - effective RTP)"
+              step="0.01"
+              min="0"
               value="1"
             >
-            <span class="form-error" id="round-error" hidden>Round is required</span>
+            <span class="form-error" id="house-edge-error" hidden>House Edge is required</span>
           </div>
 
           <button class="verify-button" type="submit">Verify / Calculate</button>
@@ -81,8 +80,8 @@
       </section>
 
       <section class="result-card" id="result-card" hidden>
-        <p class="result-label">Flip Results</p>
-        <ol class="result-list" id="flip-result-list"></ol>
+        <p class="result-label">Crash Point</p>
+        <p class="result-value" id="limbo-result">--</p>
       </section>
     </main>
 
@@ -91,19 +90,19 @@
     </footer>
   </div>
 
-  <script src="../assets/js/flip.js"></script>
+  <script src="assets/js/limbo.js"></script>
   <script>
     (() => {
       const serverSeedInput = document.getElementById("server-seed");
       const clientSeedInput = document.getElementById("client-seed");
       const nonceInput = document.getElementById("nonce");
-      const roundInput = document.getElementById("round");
-      const resultListEl = document.getElementById("flip-result-list");
+      const houseEdgeInput = document.getElementById("house-edge");
+      const resultEl = document.getElementById("limbo-result");
       const resultCardEl = document.getElementById("result-card");
       const serverSeedErrorEl = document.getElementById("server-seed-error");
       const clientSeedErrorEl = document.getElementById("client-seed-error");
       const nonceErrorEl = document.getElementById("nonce-error");
-      const roundErrorEl = document.getElementById("round-error");
+      const houseEdgeErrorEl = document.getElementById("house-edge-error");
       const formEl = document.querySelector(".verify-form");
 
       // 每次觸發計算給予遞增 token，僅套用最新一次計算結果，
@@ -117,27 +116,30 @@
 
       const hideResult = () => {
         resultCardEl.hidden = true;
-        resultListEl.replaceChildren();
+        resultEl.textContent = "--";
       };
 
-      const validateRequired = (serverSeed, clientSeed, nonceRaw, roundRaw) => {
+      const validateRequired = (serverSeed, clientSeed, nonceRaw, houseEdgeRaw) => {
         const serverSeedMissing = serverSeed === "";
         const clientSeedMissing = clientSeed === "";
         const nonceMissing = nonceRaw === "";
-        const roundMissing = roundRaw === "";
+        const houseEdgeMissing = houseEdgeRaw === "";
 
         serverSeedErrorEl.hidden = !serverSeedMissing;
         clientSeedErrorEl.hidden = !clientSeedMissing;
         nonceErrorEl.hidden = !nonceMissing;
-        roundErrorEl.hidden = !roundMissing;
+        houseEdgeErrorEl.hidden = !houseEdgeMissing;
 
         serverSeedInput.classList.toggle("is-invalid", serverSeedMissing);
         clientSeedInput.classList.toggle("is-invalid", clientSeedMissing);
         nonceInput.classList.toggle("is-invalid", nonceMissing);
-        roundInput.classList.toggle("is-invalid", roundMissing);
+        houseEdgeInput.classList.toggle("is-invalid", houseEdgeMissing);
 
         return (
-          !serverSeedMissing && !clientSeedMissing && !nonceMissing && !roundMissing
+          !serverSeedMissing &&
+          !clientSeedMissing &&
+          !nonceMissing &&
+          !houseEdgeMissing
         );
       };
 
@@ -145,50 +147,29 @@
         const serverSeed = serverSeedInput.value;
         const clientSeed = clientSeedInput.value;
         const nonceRaw = nonceInput.value;
-        const roundRaw = roundInput.value;
+        const houseEdgeRaw = houseEdgeInput.value;
 
         // 空值必填驗證：任一欄位為空字串即擋下（不觸發 HMAC 計算），
-        // 以字串層面判空，數值 0（nonce）為合法值不擋，確保結果區塊不殘留舊值。
-        if (!validateRequired(serverSeed, clientSeed, nonceRaw, roundRaw)) {
+        // 以字串層面判空，數值 0（nonce / house edge）為合法值不擋，
+        // 確保結果區塊不殘留舊值。
+        if (!validateRequired(serverSeed, clientSeed, nonceRaw, houseEdgeRaw)) {
           hideResult();
           return;
         }
 
         const token = ++latestToken;
         const nonce = parseIntField(nonceRaw, 0);
-        const roundCount = parseIntField(roundRaw, 1);
+        const houseEdge = Number(houseEdgeRaw);
 
-        // nonce 於整串計算中固定不變，逐一對 round = 1..N 呼叫
-        // GanFlip.computeFlipResult，收集每一局結果供玩家對照整串注單。
-        const rounds = Array.from({ length: roundCount }, (_, i) => i + 1);
-        const results = await Promise.all(
-          rounds.map((round) =>
-            GanFlip.computeFlipResult(serverSeed, clientSeed, nonce, round),
-          ),
+        const display = await GanLimbo.computeLimboResult(
+          serverSeed,
+          clientSeed,
+          nonce,
+          houseEdge,
         );
 
-        // 整批結果套用最新 token，避免快速連續送出時較舊的非同步
-        // 計算覆蓋較新的結果。
         if (token !== latestToken) return;
-
-        const items = rounds.map((round, i) => {
-          const resultText = results[i] === 0 ? "Heads (0)" : "Tails (1)";
-          const li = document.createElement("li");
-          li.className = "result-list-item";
-
-          const roundSpan = document.createElement("span");
-          roundSpan.className = "result-list-round";
-          roundSpan.textContent = `Round ${round}`;
-
-          const valueSpan = document.createElement("span");
-          valueSpan.className = "result-list-value";
-          valueSpan.textContent = resultText;
-
-          li.append(roundSpan, valueSpan);
-          return li;
-        });
-
-        resultListEl.replaceChildren(...items);
+        resultEl.textContent = `${display}×`;
         resultCardEl.hidden = false;
       };
 

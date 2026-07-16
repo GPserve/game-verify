@@ -112,6 +112,11 @@ body {
 
 .game-list-arrow {
   color: var(--color-accent);
+  transition: transform 0.15s ease;
+}
+
+.game-list-item:hover .game-list-arrow {
+  transform: translateX(-4px);
 }
 
 .site-footer {

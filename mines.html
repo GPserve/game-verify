@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Keno Fairness Verification | GanPlay Provably Fair</title>
-  <meta name="description" content="GanPlay Keno Provably Fair player self-service verification. Enter Server Seed / Client Seed / Nonce to verify the drawn numbers of the round.">
-  <link rel="stylesheet" href="../assets/css/style.css">
+  <title>Mines Fairness Verification | GanPlay Provably Fair</title>
+  <meta name="description" content="GanPlay Mines Provably Fair player self-service verification. Enter Server Seed / Client Seed / Nonce / Mine Count to verify the mine positions of the round.">
+  <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
   <div class="page">
     <header class="site-header">
-      <h1 class="site-title">Keno Fairness Verification</h1>
+      <h1 class="site-title">Mines Fairness Verification</h1>
       <p class="site-subtitle">GanPlay Provably Fair Player Self-Service Verification</p>
     </header>
 
@@ -60,13 +60,31 @@
             <span class="form-error" id="nonce-error" hidden>Nonce is required</span>
           </div>
 
+          <div class="form-group">
+            <label class="form-label" for="mine-count">Mine Count</label>
+            <input
+              class="form-input"
+              type="number"
+              id="mine-count"
+              name="mine-count"
+              placeholder="Enter the number of mines"
+              step="1"
+              min="1"
+              max="24"
+              value="3"
+            >
+            <span class="form-error" id="mine-count-error" hidden>Mine Count is required</span>
+          </div>
+
           <button class="verify-button" type="submit">Verify / Calculate</button>
         </form>
       </section>
 
       <section class="result-card" id="result-card" hidden>
-        <p class="result-label">Drawn Numbers (10)</p>
-        <p class="result-value" id="drawn-numbers-result">--</p>
+        <p class="result-label">Mine Positions</p>
+        <p class="result-value" id="mine-positions-result">--</p>
+        <p class="result-label">Full Order (25)</p>
+        <p class="result-value" id="full-order-result">--</p>
       </section>
     </main>
 
@@ -75,17 +93,20 @@
     </footer>
   </div>
 
-  <script src="../assets/js/keno.js"></script>
+  <script src="assets/js/mines.js"></script>
   <script>
     (() => {
       const serverSeedInput = document.getElementById("server-seed");
       const clientSeedInput = document.getElementById("client-seed");
       const nonceInput = document.getElementById("nonce");
-      const drawnNumbersResultEl = document.getElementById("drawn-numbers-result");
+      const mineCountInput = document.getElementById("mine-count");
+      const minePositionsResultEl = document.getElementById("mine-positions-result");
+      const fullOrderResultEl = document.getElementById("full-order-result");
       const resultCardEl = document.getElementById("result-card");
       const serverSeedErrorEl = document.getElementById("server-seed-error");
       const clientSeedErrorEl = document.getElementById("client-seed-error");
       const nonceErrorEl = document.getElementById("nonce-error");
+      const mineCountErrorEl = document.getElementById("mine-count-error");
       const formEl = document.querySelector(".verify-form");
 
       // 每次觸發計算給予遞增 token，僅套用最新一次計算結果，
@@ -99,48 +120,61 @@
 
       const hideResult = () => {
         resultCardEl.hidden = true;
-        drawnNumbersResultEl.textContent = "--";
+        minePositionsResultEl.textContent = "--";
+        fullOrderResultEl.textContent = "--";
       };
 
-      const validateRequired = (serverSeed, clientSeed, nonceRaw) => {
+      const validateRequired = (serverSeed, clientSeed, nonceRaw, mineCountRaw) => {
         const serverSeedMissing = serverSeed === "";
         const clientSeedMissing = clientSeed === "";
         const nonceMissing = nonceRaw === "";
+        const mineCountMissing = mineCountRaw === "";
 
         serverSeedErrorEl.hidden = !serverSeedMissing;
         clientSeedErrorEl.hidden = !clientSeedMissing;
         nonceErrorEl.hidden = !nonceMissing;
+        mineCountErrorEl.hidden = !mineCountMissing;
 
         serverSeedInput.classList.toggle("is-invalid", serverSeedMissing);
         clientSeedInput.classList.toggle("is-invalid", clientSeedMissing);
         nonceInput.classList.toggle("is-invalid", nonceMissing);
+        mineCountInput.classList.toggle("is-invalid", mineCountMissing);
 
-        return !serverSeedMissing && !clientSeedMissing && !nonceMissing;
+        return (
+          !serverSeedMissing &&
+          !clientSeedMissing &&
+          !nonceMissing &&
+          !mineCountMissing
+        );
       };
 
       const recompute = async () => {
         const serverSeed = serverSeedInput.value;
         const clientSeed = clientSeedInput.value;
         const nonceRaw = nonceInput.value;
+        const mineCountRaw = mineCountInput.value;
 
         // 空值必填驗證：任一欄位為空字串即擋下（不觸發 HMAC 計算），
         // 以字串層面判空，數值 0（nonce）為合法值不擋，確保結果區塊不殘留舊值。
-        if (!validateRequired(serverSeed, clientSeed, nonceRaw)) {
+        if (!validateRequired(serverSeed, clientSeed, nonceRaw, mineCountRaw)) {
           hideResult();
           return;
         }
 
         const token = ++latestToken;
         const nonce = parseIntField(nonceRaw, 0);
+        const mineCount = parseIntField(mineCountRaw, 3);
 
-        const { drawn } = await GanKeno.computeKenoResult(
+        const { result, minePositions } = await GanMines.computeMinesResult(
           serverSeed,
           clientSeed,
           nonce,
+          mineCount,
         );
 
         if (token !== latestToken) return;
-        drawnNumbersResultEl.textContent = drawn.join(", ");
+        minePositionsResultEl.textContent = minePositions.join(", ");
+        fullOrderResultEl.textContent = result.join(", ");
         resultCardEl.hidden = false;
       };
 

@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mines Fairness Verification | GanPlay Provably Fair</title>
-  <meta name="description" content="GanPlay Mines Provably Fair player self-service verification. Enter Server Seed / Client Seed / Nonce / Mine Count to verify the mine positions of the round.">
-  <link rel="stylesheet" href="../assets/css/style.css">
+  <title>Chicken Fairness Verification | GanPlay Provably Fair</title>
+  <meta name="description" content="GanPlay Chicken Provably Fair player self-service verification. Enter Server Seed / Client Seed / Nonce / Bone Count to verify the bone positions of the round.">
+  <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
   <div class="page">
     <header class="site-header">
-      <h1 class="site-title">Mines Fairness Verification</h1>
+      <h1 class="site-title">Chicken Fairness Verification</h1>
       <p class="site-subtitle">GanPlay Provably Fair Player Self-Service Verification</p>
     </header>
 
@@ -61,19 +61,13 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="mine-count">Mine Count</label>
-            <input
-              class="form-input"
-              type="number"
-              id="mine-count"
-              name="mine-count"
-              placeholder="Enter the number of mines"
-              step="1"
-              min="1"
-              max="24"
-              value="3"
-            >
-            <span class="form-error" id="mine-count-error" hidden>Mine Count is required</span>
+            <label class="form-label" for="bone-count">Bone Count</label>
+            <select class="form-input" id="bone-count" name="bone-count">
+              <option value="1" selected>1</option>
+              <option value="3">3</option>
+              <option value="5">5</option>
+              <option value="10">10</option>
+            </select>
           </div>
 
           <button class="verify-button" type="submit">Verify / Calculate</button>
@@ -81,9 +75,11 @@
       </section>
 
       <section class="result-card" id="result-card" hidden>
-        <p class="result-label">Mine Positions</p>
-        <p class="result-value" id="mine-positions-result">--</p>
-        <p class="result-label">Full Order (25)</p>
+        <p class="result-label">Bone Positions</p>
+        <p class="result-value" id="bone-positions-result">--</p>
+        <p class="result-label">Death Point</p>
+        <p class="result-value" id="death-point-result">--</p>
+        <p class="result-label">Full Order (20)</p>
         <p class="result-value" id="full-order-result">--</p>
       </section>
     </main>
@@ -93,20 +89,22 @@
     </footer>
   </div>
 
-  <script src="../assets/js/mines.js"></script>
+  <script src="assets/js/chicken.js"></script>
   <script>
     (() => {
+      const TOTAL_CELLS = 20;
+
       const serverSeedInput = document.getElementById("server-seed");
       const clientSeedInput = document.getElementById("client-seed");
       const nonceInput = document.getElementById("nonce");
-      const mineCountInput = document.getElementById("mine-count");
-      const minePositionsResultEl = document.getElementById("mine-positions-result");
+      const boneCountInput = document.getElementById("bone-count");
+      const bonePositionsResultEl = document.getElementById("bone-positions-result");
+      const deathPointResultEl = document.getElementById("death-point-result");
       const fullOrderResultEl = document.getElementById("full-order-result");
       const resultCardEl = document.getElementById("result-card");
       const serverSeedErrorEl = document.getElementById("server-seed-error");
       const clientSeedErrorEl = document.getElementById("client-seed-error");
       const nonceErrorEl = document.getElementById("nonce-error");
-      const mineCountErrorEl = document.getElementById("mine-count-error");
       const formEl = document.querySelector(".verify-form");
 
       // 每次觸發計算給予遞增 token，僅套用最新一次計算結果，
@@ -120,61 +118,59 @@
 
       const hideResult = () => {
         resultCardEl.hidden = true;
-        minePositionsResultEl.textContent = "--";
+        bonePositionsResultEl.textContent = "--";
+        deathPointResultEl.textContent = "--";
         fullOrderResultEl.textContent = "--";
       };
 
-      const validateRequired = (serverSeed, clientSeed, nonceRaw, mineCountRaw) => {
+      // Bone Count 為 select，永遠有值（天然無空值），僅檢 server/client/nonce 三欄。
+      const validateRequired = (serverSeed, clientSeed, nonceRaw) => {
         const serverSeedMissing = serverSeed === "";
         const clientSeedMissing = clientSeed === "";
         const nonceMissing = nonceRaw === "";
-        const mineCountMissing = mineCountRaw === "";
 
         serverSeedErrorEl.hidden = !serverSeedMissing;
         clientSeedErrorEl.hidden = !clientSeedMissing;
         nonceErrorEl.hidden = !nonceMissing;
-        mineCountErrorEl.hidden = !mineCountMissing;
 
         serverSeedInput.classList.toggle("is-invalid", serverSeedMissing);
         clientSeedInput.classList.toggle("is-invalid", clientSeedMissing);
         nonceInput.classList.toggle("is-invalid", nonceMissing);
-        mineCountInput.classList.toggle("is-invalid", mineCountMissing);
 
-        return (
-          !serverSeedMissing &&
-          !clientSeedMissing &&
-          !nonceMissing &&
-          !mineCountMissing
-        );
+        return !serverSeedMissing && !clientSeedMissing && !nonceMissing;
       };
 
       const recompute = async () => {
         const serverSeed = serverSeedInput.value;
         const clientSeed = clientSeedInput.value;
         const nonceRaw = nonceInput.value;
-        const mineCountRaw = mineCountInput.value;
+        const boneCountRaw = boneCountInput.value;
 
-        // 空值必填驗證：任一欄位為空字串即擋下（不觸發 HMAC 計算），
-        // 以字串層面判空，數值 0（nonce）為合法值不擋，確保結果區塊不殘留舊值。
-        if (!validateRequired(serverSeed, clientSeed, nonceRaw, mineCountRaw)) {
+        // 空值必填驗證：server_seed / client_seed / nonce 任一為空字串，
+        // 不觸發 HMAC 計算，以字串層面判空，數值 0（nonce）為合法值不擋，
+        // 確保結果區塊不殘留舊值。bone-count 為 select 天然有值，無需空值檢查。
+        if (!validateRequired(serverSeed, clientSeed, nonceRaw)) {
           hideResult();
           return;
         }
 
         const token = ++latestToken;
         const nonce = parseIntField(nonceRaw, 0);
-        const mineCount = parseIntField(mineCountRaw, 3);
+        const boneCount = parseIntField(boneCountRaw, 3);
 
-        const { result, minePositions } = await GanMines.computeMinesResult(
-          serverSeed,
-          clientSeed,
-          nonce,
-          mineCount,
-        );
+        const { fullSequence, bonePositions, deathPoint } =
+          await GanChicken.computeChickenResult(
+            serverSeed,
+            clientSeed,
+            nonce,
+            boneCount,
+            TOTAL_CELLS,
+          );
 
         if (token !== latestToken) return;
-        minePositionsResultEl.textContent = minePositions.join(", ");
-        fullOrderResultEl.textContent = result.join(", ");
+        bonePositionsResultEl.textContent = bonePositions.join(", ");
+        deathPointResultEl.textContent = String(deathPoint);
+        fullOrderResultEl.textContent = fullSequence.join(", ");
         resultCardEl.hidden = false;
       };
 
