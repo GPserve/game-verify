@@ -1,5 +1,19 @@
-// GanPlay game-verify 入口頁腳本
-// 本檔案為骨架 placeholder，逐遊戲的公平性驗證邏輯將於後續各遊戲驗證頁單獨實作。
+// GanPlay game-verify 入口頁腳本：遊戲分類篩選（All / Original / Poker）
 (() => {
-  console.info('[game-verify] Entry page loaded. Verification tools coming soon.');
+  const buttons = Array.from(document.querySelectorAll('.game-filter-button'));
+  const items = Array.from(document.querySelectorAll('.game-list-item'));
+  if (!buttons.length || !items.length) return;
+
+  const applyCategory = (category) => {
+    items.forEach((item) => {
+      item.hidden = category !== 'all' && item.dataset.category !== category;
+    });
+    buttons.forEach((button) => {
+      button.classList.toggle('is-active', button.dataset.category === category);
+    });
+  };
+
+  buttons.forEach((button) => {
+    button.addEventListener('click', () => applyCategory(button.dataset.category));
+  });
 })();

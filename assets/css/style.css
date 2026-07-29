@@ -80,6 +80,37 @@ body {
   font-weight: 600;
 }
 
+/* 入口頁：遊戲分類篩選（All / Original / Poker） */
+.game-filter {
+  margin-top: 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.game-filter-button {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.45rem 1.1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.game-filter-button:hover {
+  border-color: var(--color-accent);
+  color: var(--color-text);
+}
+
+.game-filter-button.is-active {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-bg);
+}
+
 /* 入口頁：遊戲驗證頁導覽清單 */
 .game-list {
   margin-top: 1.25rem;
@@ -104,6 +135,11 @@ body {
 
 .game-list-item:hover {
   border-color: var(--color-accent);
+}
+
+/* class 的 display 特異性高於 UA 的 [hidden]、篩選隱藏需顯式覆蓋 */
+.game-list-item[hidden] {
+  display: none;
 }
 
 .game-list-name {
