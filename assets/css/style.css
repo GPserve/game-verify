@@ -257,6 +257,176 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Slot board grid: symbol codes laid out as they appear on the reels
+   (rows top-to-bottom, reels left-to-right). Codes are payout tiers, not
+   artwork names — see the note under the table. */
+.board-table {
+  width: 100%;
+  margin: 0.75rem 0 0;
+  border-collapse: separate;
+  border-spacing: 6px;
+  table-layout: fixed;
+}
+
+.board-table td {
+  padding: 0.55rem 0.3rem;
+  text-align: center;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Board cell: artwork above, payout-tier code below. The code is what a
+   player cross-checks against the round data; the art is orientation only. */
+.cell-art {
+  display: block;
+  width: 100%;
+  max-width: 54px;
+  margin: 0 auto;
+  aspect-ratio: 1;
+  object-fit: contain;
+}
+
+.result-label--spaced {
+  margin-top: 1.5rem;
+}
+
+.result-value--compact {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+/* Board + overlay: the winning line is drawn as a polyline through the centre
+   of each cell on that payline. The matched segment is solid, the rest dashed,
+   so a player sees both how the line runs and where it breaks. The SVG is
+   absolutely positioned so it never adds height to the layout. */
+.board-wrap {
+  position: relative;
+}
+
+.board-line {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.board-line-path {
+  fill: none;
+  stroke: #f6c344;
+  stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.board-line-path--rest {
+  stroke: rgba(246, 195, 68, 0.35);
+  stroke-width: 2;
+  stroke-dasharray: 5 5;
+}
+
+.board-line-dot {
+  fill: #f6c344;
+}
+
+/* Winning line list: compact 3-up grid — line number, match count, payout.
+   Clicking an entry traces that line's full path on the board above. */
+.line-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: 0.5rem;
+}
+
+.line-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.5rem 0.6rem;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.line-item:hover {
+  border-color: var(--color-accent);
+}
+
+.line-item.is-active {
+  border-color: var(--color-accent);
+  background-color: rgba(56, 189, 248, 0.1);
+}
+
+.line-item-index {
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.line-item-count {
+  margin-left: auto;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+/* Bonus carried by the WILDs on that winning line (Bunny Gold only). */
+.line-item-bonus {
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.35rem;
+  background-color: rgba(246, 195, 68, 0.15);
+  border-radius: 5px;
+  color: #f6c344;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.line-scatter {
+  grid-column: 1 / -1;
+  margin: 0;
+  text-align: center;
+  padding: 0.6rem 0.8rem;
+  background-color: var(--color-bg);
+  border: 1px dashed var(--color-border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.lines-empty {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+/* Free spins: each spin gets its own board and line list. */
+.free-spin-item {
+  margin-bottom: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.free-spin-item:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.free-spin-head {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .result-list {
   margin: 0;
   padding: 0;

@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fruit King Fairness Verification | GanPlay Provably Fair</title>
+  <meta name="description" content="GanPlay Fruit King Provably Fair player self-service verification. Enter Server Seed / Client Seed / Nonce to rebuild the reel stops and board of the round.">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <div class="page">
+    <header class="site-header">
+      <h1 class="site-title">Fruit King Fairness Verification</h1>
+      <p class="site-subtitle">GanPlay Provably Fair Player Self-Service Verification</p>
+    </header>
+
+    <main class="site-main">
+      <section class="verify-card">
+        <form class="verify-form" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="server-seed">Server Seed</label>
+            <input
+              class="form-input"
+              type="text"
+              id="server-seed"
+              name="server-seed"
+              placeholder="Enter the Server Seed for this round"
+              autocomplete="off"
+              spellcheck="false"
+            >
+            <span class="form-error" id="server-seed-error" hidden>Server Seed is required</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="client-seed">Client Seed</label>
+            <input
+              class="form-input"
+              type="text"
+              id="client-seed"
+              name="client-seed"
+              placeholder="Enter the Client Seed for this round"
+              autocomplete="off"
+              spellcheck="false"
+            >
+            <span class="form-error" id="client-seed-error" hidden>Client Seed is required</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="nonce">Nonce</label>
+            <input
+              class="form-input"
+              type="number"
+              id="nonce"
+              name="nonce"
+              placeholder="Enter the round number (Nonce)"
+              step="1"
+              min="0"
+              value="0"
+            >
+            <span class="form-error" id="nonce-error" hidden>Nonce is required</span>
+          </div>
+
+          <button class="verify-button" type="submit">Verify / Calculate</button>
+        </form>
+      </section>
+
+      <section class="result-card" id="result-card" hidden>
+        <p class="result-label">Reel Stops</p>
+        <p class="result-value result-value--compact" id="stops-result">--</p>
+
+        <p class="result-label result-label--spaced">Board (3 rows &times; 5 reels)</p>
+        <div class="board-wrap">
+          <table class="board-table" id="board-result">
+            <tbody></tbody>
+          </table>
+          <svg class="board-line" id="board-line" aria-hidden="true"></svg>
+        </div>
+
+        <p class="result-label result-label--spaced">Winning Lines</p>
+        <div id="lines-result"></div>
+
+        <div id="free-spin-section" hidden>
+          <p class="result-label result-label--spaced" id="free-spin-label"></p>
+          <div id="free-spin-result"></div>
+        </div>
+
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>&copy; 2026 GanPlay. All rights reserved.</p>
+    </footer>
+  </div>
+
+  <script src="assets/js/fruit_king.js"></script>
+  <script>
+    (() => {
+      const serverSeedInput = document.getElementById("server-seed");
+      const clientSeedInput = document.getElementById("client-seed");
+      const nonceInput = document.getElementById("nonce");
+      const stopsResultEl = document.getElementById("stops-result");
+      const boardResultEl = document.getElementById("board-result").querySelector("tbody");
+      const linesResultEl = document.getElementById("lines-result");
+      const boardLineEl = document.getElementById("board-line");
+      const freeSpinSectionEl = document.getElementById("free-spin-section");
+      const freeSpinLabelEl = document.getElementById("free-spin-label");
+      const freeSpinResultEl = document.getElementById("free-spin-result");
+      const resultCardEl = document.getElementById("result-card");
+      const serverSeedErrorEl = document.getElementById("server-seed-error");
+      const clientSeedErrorEl = document.getElementById("client-seed-error");
+      const nonceErrorEl = document.getElementById("nonce-error");
+      const formEl = document.querySelector(".verify-form");
+
+      // 每次觸發計算給予遞增 token，僅套用最新一次計算結果，
+      // 避免快速連續送出時較舊的非同步計算覆蓋較新的結果。
+      let latestToken = 0;
+
+      const parseIntField = (rawValue, fallback) => {
+        const parsed = Math.trunc(Number(rawValue));
+        return Number.isFinite(parsed) ? parsed : fallback;
+      };
+
+      const hideResult = () => {
+        resultCardEl.hidden = true;
+        stopsResultEl.textContent = "--";
+        boardResultEl.innerHTML = "";
+        linesResultEl.innerHTML = "";
+        boardLineEl.innerHTML = "";
+        freeSpinSectionEl.hidden = true;
+        freeSpinResultEl.innerHTML = "";
+      };
+
+      const validateRequired = (serverSeed, clientSeed, nonceRaw) => {
+        const serverSeedMissing = serverSeed === "";
+        const clientSeedMissing = clientSeed === "";
+        const nonceMissing = nonceRaw === "";
+
+        serverSeedErrorEl.hidden = !serverSeedMissing;
+        clientSeedErrorEl.hidden = !clientSeedMissing;
+        nonceErrorEl.hidden = !nonceMissing;
+
+        serverSeedInput.classList.toggle("is-invalid", serverSeedMissing);
+        clientSeedInput.classList.toggle("is-invalid", clientSeedMissing);
+        nonceInput.classList.toggle("is-invalid", nonceMissing);
+
+        return !serverSeedMissing && !clientSeedMissing && !nonceMissing;
+      };
+
+      // 符號代號 → 素材檔（對照由業主確認）。代號是賠付分級、與美術主題無關，
+      // 故盤面同時顯示圖與代號：圖給人看，代號是玩家對照後端資料的依據。
+      const SYMBOL_IMAGES = {
+        L01: "caterpillar",
+        L02: "snail",
+        L03: "ladybug",
+        L04: "honeybee",
+        L05: "butterfly",
+        H01: "cherries",
+        H02: "lemon",
+        H03: "watermelon",
+        H04: "grapes",
+        WILD: "wild_sq",
+        SCATTER: "scatter_sq",
+      };
+
+      const formatStops = (stops) =>
+        stops
+          .map((stop, index) => `Reel ${index + 1}: ${stop}`)
+          .join("\u00a0\u00a0\u00b7\u00a0\u00a0");
+
+      /** 畫盤面（純顯示代號，中獎段由上層 SVG 連線標示）。 */
+      const renderBoard = (tbody, board) => {
+        tbody.innerHTML = board
+          .map(
+            (row) =>
+              `<tr>${row
+                .map((symbol) => {
+                  const file = SYMBOL_IMAGES[symbol];
+                  const art = file
+                    ? `<img class="cell-art" src="assets/images/fruit_king/symbol-${file}.webp" alt="${symbol}" loading="lazy">`
+                    : symbol;
+                  return `<td>${art}</td>`;
+                })
+                .join("")}</tr>`,
+          )
+          .join("");
+      };
+
+      /**
+       * 在盤面上畫出一條賠付線：走完整條線的五格（那是這條線的完整路徑），
+       * 中獎段（前 count 軸）畫實線並標點，其餘畫細虛線——玩家因此看得到
+       * 「這條線怎麼走」與「在哪一格斷掉」兩件事。
+       * 座標取自實際 DOM 位置，欄寬變動時仍然對齊。
+       */
+      const drawLine = (svg, tbody, rows, count) => {
+        svg.innerHTML = "";
+        if (!rows.length) return;
+        const wrap = svg.parentElement;
+        const wrapBox = wrap.getBoundingClientRect();
+        svg.setAttribute("viewBox", `0 0 ${wrapBox.width} ${wrapBox.height}`);
+
+        const centres = [];
+        for (let reel = 0; reel < rows.length; reel += 1) {
+          const cell = tbody.rows[rows[reel]]?.cells[reel];
+          if (!cell) return;
+          const box = cell.getBoundingClientRect();
+          centres.push([
+            box.left - wrapBox.left + box.width / 2,
+            box.top - wrapBox.top + box.height / 2,
+          ]);
+        }
+
+        const svgNs = "http://www.w3.org/2000/svg";
+        const polyline = (points, className) => {
+          if (points.length < 2) return;
+          const el = document.createElementNS(svgNs, "polyline");
+          el.setAttribute("points", points.map((p) => p.join(",")).join(" "));
+          el.setAttribute("class", className);
+          svg.appendChild(el);
+        };
+
+        // 整條線的路徑（含未中獎的尾段）先畫細虛線，中獎段再疊實線在上面
+        polyline(centres, "board-line-path board-line-path--rest");
+        polyline(centres.slice(0, count), "board-line-path");
+
+        centres.slice(0, count).forEach(([x, y]) => {
+          const dot = document.createElementNS(svgNs, "circle");
+          dot.setAttribute("cx", x);
+          dot.setAttribute("cy", y);
+          dot.setAttribute("r", 5);
+          dot.setAttribute("class", "board-line-dot");
+          svg.appendChild(dot);
+        });
+      };
+
+      /** 列出中獎線；點一條就在對應盤面上標出它的中獎段。 */
+      const renderLines = (container, spin, boardTbody, svg) => {
+        const parts = [];
+        if (spin.lines.length === 0 && spin.scatterCount === 0) {
+          container.innerHTML = '<p class="lines-empty">No winning line on this spin.</p>';
+          return;
+        }
+        spin.lines.forEach((line) => {
+          parts.push(
+            `<button type="button" class="line-item" data-rows="${line.paylineRows.join(",")}" data-count="${line.matchCount}">` +
+              `<span class="line-item-index">Line ${line.lineIndex + 1}</span>` +
+              `<span class="line-item-count">${line.matchCount} in a row</span>` +
+            `</button>`,
+          );
+        });
+        if (spin.scatterCount > 0) {
+          parts.push(
+            `<p class="line-scatter">SCATTER &times; ${spin.scatterCount}</p>`,
+          );
+        }
+        container.innerHTML = `<div class="line-grid">${parts.join("")}</div>`;
+        container.querySelectorAll(".line-item").forEach((button) => {
+          button.addEventListener("click", () => {
+            const active = button.classList.contains("is-active");
+            container.querySelectorAll(".line-item").forEach((b) => b.classList.remove("is-active"));
+            if (active) {
+              svg.innerHTML = "";
+              return;
+            }
+            button.classList.add("is-active");
+            drawLine(
+              svg,
+              boardTbody,
+              button.dataset.rows.split(",").map(Number),
+              Number(button.dataset.count),
+            );
+          });
+        });
+      };
+
+      const recompute = async () => {
+        const serverSeed = serverSeedInput.value;
+        const clientSeed = clientSeedInput.value;
+        const nonceRaw = nonceInput.value;
+
+        // 空值必填驗證：任一欄位為空字串即擋下（不觸發 HMAC 計算），
+        // 以字串層面判空，數值 0（nonce）為合法值不擋，確保結果區塊不殘留舊值。
+        if (!validateRequired(serverSeed, clientSeed, nonceRaw)) {
+          hideResult();
+          return;
+        }
+
+        const token = ++latestToken;
+        const nonce = parseIntField(nonceRaw, 0);
+
+        const { base, freeSpins } = await GanFruitKing.verify(
+          serverSeed,
+          clientSeed,
+          nonce,
+        );
+
+        if (token !== latestToken) return;
+
+        // 主轉：停軸、盤面、中獎線
+        stopsResultEl.textContent = formatStops(base.stops);
+        renderBoard(boardResultEl, base.board);
+        boardLineEl.innerHTML = "";
+        renderLines(linesResultEl, base, boardResultEl, boardLineEl);
+
+        // 免轉：觸發時逐轉列出（每轉自己的盤面與中獎線）
+        if (freeSpins.length > 0) {
+          freeSpinLabelEl.textContent =
+            `Free Spins (${freeSpins.length} spins, triggered by ${base.scatterCount} SCATTER)`;
+          freeSpinResultEl.innerHTML = "";
+          freeSpins.forEach((spin, index) => {
+            const wrap = document.createElement("div");
+            wrap.className = "free-spin-item";
+            const head = document.createElement("p");
+            head.className = "free-spin-head";
+            head.textContent =
+              `Spin ${index + 1} \u00b7 Nonce ${spin.nonce} \u00b7 ${formatStops(spin.stops)}`;
+            wrap.appendChild(head);
+            const boardWrap = document.createElement("div");
+            boardWrap.className = "board-wrap";
+            const table = document.createElement("table");
+            table.className = "board-table";
+            const tbody = document.createElement("tbody");
+            table.appendChild(tbody);
+            renderBoard(tbody, spin.board);
+            boardWrap.appendChild(table);
+            const spinSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            spinSvg.setAttribute("class", "board-line");
+            spinSvg.setAttribute("aria-hidden", "true");
+            boardWrap.appendChild(spinSvg);
+            wrap.appendChild(boardWrap);
+            const lines = document.createElement("div");
+            renderLines(lines, spin, tbody, spinSvg);
+            wrap.appendChild(lines);
+            freeSpinResultEl.appendChild(wrap);
+          });
+          freeSpinSectionEl.hidden = false;
+        }
+
+        resultCardEl.hidden = false;
+      };
+
+      formEl.addEventListener("submit", (event) => {
+        event.preventDefault();
+        recompute();
+      });
+    })();
+  </script>
+</body>
+</html>
