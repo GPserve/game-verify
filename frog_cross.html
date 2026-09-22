@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Frog Cross Fairness Verification | GanPlay Provably Fair</title>
+  <meta name="description" content="GanPlay Frog Cross Provably Fair player self-service verification. Enter Server Seed / Client Seed / Nonce / Difficulty to verify the frog and sunk pad positions of all 9 rows.">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <div class="page">
+    <header class="site-header">
+      <h1 class="site-title">Frog Cross Fairness Verification</h1>
+      <p class="site-subtitle">GanPlay Provably Fair Player Self-Service Verification</p>
+    </header>
+
+    <main class="site-main">
+      <section class="verify-card">
+        <form class="verify-form" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="server-seed">Server Seed</label>
+            <input
+              class="form-input"
+              type="text"
+              id="server-seed"
+              name="server-seed"
+              placeholder="Enter the Server Seed for this round"
+              autocomplete="off"
+              spellcheck="false"
+            >
+            <span class="form-error" id="server-seed-error" hidden>Server Seed is required</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="client-seed">Client Seed</label>
+            <input
+              class="form-input"
+              type="text"
+              id="client-seed"
+              name="client-seed"
+              placeholder="Enter the Client Seed for this round"
+              autocomplete="off"
+              spellcheck="false"
+            >
+            <span class="form-error" id="client-seed-error" hidden>Client Seed is required</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="nonce">Nonce</label>
+            <input
+              class="form-input"
+              type="number"
+              id="nonce"
+              name="nonce"
+              placeholder="Enter the round number (Nonce)"
+              step="1"
+              min="0"
+              value="0"
+            >
+            <span class="form-error" id="nonce-error" hidden>Nonce is required</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="difficulty">Difficulty</label>
+            <select class="form-input" id="difficulty" name="difficulty">
+              <option value="Easy" selected>Easy (4 pads, 3 frogs)</option>
+              <option value="Medium">Medium (3 pads, 2 frogs)</option>
+              <option value="Hard">Hard (2 pads, 1 frog)</option>
+              <option value="Expert">Expert (3 pads, 1 frog)</option>
+              <option value="Master">Master (4 pads, 1 frog)</option>
+            </select>
+          </div>
+
+          <button class="verify-button" type="submit">Verify / Calculate</button>
+        </form>
+      </section>
+
+      <section class="result-card" id="result-card" hidden>
+        <p class="result-label">Sunk Pads per Row (row 1 to 9)</p>
+        <p class="result-value" id="sunk-result">--</p>
+        <p class="result-label">Frog Pads per Row (row 1 to 9)</p>
+        <p class="result-value" id="frogs-result">--</p>
+        <p class="result-label">Full Order per Row (row 1 to 9)</p>
+        <p class="result-value" id="full-order-result">--</p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>&copy; 2026 GanPlay. All rights reserved.</p>
+    </footer>
+  </div>
+
+  <script src="assets/js/frog_cross.js"></script>
+  <script>
+    (() => {
+      const serverSeedInput = document.getElementById("server-seed");
+      const clientSeedInput = document.getElementById("client-seed");
+      const nonceInput = document.getElementById("nonce");
+      const difficultyInput = document.getElementById("difficulty");
+      const sunkResultEl = document.getElementById("sunk-result");
+      const frogsResultEl = document.getElementById("frogs-result");
+      const fullOrderResultEl = document.getElementById("full-order-result");
+      const resultCardEl = document.getElementById("result-card");
+      const serverSeedErrorEl = document.getElementById("server-seed-error");
+      const clientSeedErrorEl = document.getElementById("client-seed-error");
+      const nonceErrorEl = document.getElementById("nonce-error");
+      const formEl = document.querySelector(".verify-form");
+
+      // 每次觸發計算給予遞增 token，僅套用最新一次計算結果。
+      let latestToken = 0;
+
+      const parseIntField = (rawValue, fallback) => {
+        const parsed = Math.trunc(Number(rawValue));
+        return Number.isFinite(parsed) ? parsed : fallback;
+      };
+
+      const hideResult = () => {
+        resultCardEl.hidden = true;
+        sunkResultEl.textContent = "--";
+        frogsResultEl.textContent = "--";
+        fullOrderResultEl.textContent = "--";
+      };
+
+      // Difficulty 為 select 天然有值，僅檢 server/client/nonce 三欄。
+      const validateRequired = (serverSeed, clientSeed, nonceRaw) => {
+        const serverSeedMissing = serverSeed === "";
+        const clientSeedMissing = clientSeed === "";
+        const nonceMissing = nonceRaw === "";
+
+        serverSeedErrorEl.hidden = !serverSeedMissing;
+        clientSeedErrorEl.hidden = !clientSeedMissing;
+        nonceErrorEl.hidden = !nonceMissing;
+
+        serverSeedInput.classList.toggle("is-invalid", serverSeedMissing);
+        clientSeedInput.classList.toggle("is-invalid", clientSeedMissing);
+        nonceInput.classList.toggle("is-invalid", nonceMissing);
+
+        return !serverSeedMissing && !clientSeedMissing && !nonceMissing;
+      };
+
+      // 與 BettingRecord 序列化同形：排間 "; "、排內 ","（1-based）
+      const joinRows = (rows, pick) => rows.map((r) => pick(r).join(",")).join("; ");
+
+      const recompute = async () => {
+        const serverSeed = serverSeedInput.value;
+        const clientSeed = clientSeedInput.value;
+        const nonceRaw = nonceInput.value;
+
+        if (!validateRequired(serverSeed, clientSeed, nonceRaw)) {
+          hideResult();
+          return;
+        }
+
+        const token = ++latestToken;
+        const nonce = parseIntField(nonceRaw, 0);
+        const difficulty = difficultyInput.value;
+
+        const { rows } = await GanFrogCross.computeFrogCrossResult(
+          serverSeed,
+          clientSeed,
+          nonce,
+          difficulty,
+        );
+
+        if (token !== latestToken) return;
+        sunkResultEl.textContent = joinRows(rows, (r) => r.sunk);
+        frogsResultEl.textContent = joinRows(rows, (r) => r.frogs);
+        fullOrderResultEl.textContent = joinRows(rows, (r) => r.fullOrder);
+        resultCardEl.hidden = false;
+      };
+
+      formEl.addEventListener("submit", (event) => {
+        event.preventDefault();
+        recompute();
+      });
+    })();
+  </script>
+</body>
+</html>
