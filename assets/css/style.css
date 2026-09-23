@@ -334,6 +334,74 @@ body {
   fill: #f6c344;
 }
 
+/* Uneven board (Aurora Bear, 3-4-4-4-3): one column per reel, short reels
+   centred vertically so every row lines up with its neighbours' midpoints. */
+.board-reels {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin: 0.75rem 0 0;
+  padding: 6px;
+}
+
+.board-reel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+
+.board-cell {
+  position: relative;
+  padding: 0.55rem 0.3rem;
+  text-align: center;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Cell that was a MYSTERY before the reveal. */
+.board-cell--mystery {
+  border-style: dashed;
+  border-color: #a78bfa;
+}
+
+/* WILD held in place for the rest of the free spins. */
+.board-cell--sticky {
+  border-color: #f6c344;
+}
+
+.board-cell-badge {
+  position: absolute;
+  top: -8px;
+  right: -6px;
+  padding: 0 0.3rem;
+  background-color: #f6c344;
+  border-radius: 5px;
+  color: var(--color-bg);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.board-legend {
+  margin: 0.4rem 0 0;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.board-legend-mystery {
+  color: #a78bfa;
+}
+
+.board-legend-sticky {
+  color: #f6c344;
+}
+
 /* Winning line list: compact 3-up grid — line number, match count, payout.
    Clicking an entry traces that line's full path on the board above. */
 .line-grid {
