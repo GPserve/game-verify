@@ -216,6 +216,24 @@ body {
   border: 1px solid #f87171;
 }
 
+.form-label-optional {
+  font-weight: 400;
+}
+
+/* 驗證頁：Server Seed Hash 比對結果 */
+.form-hash-status {
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.form-hash-status.is-match {
+  color: #4ade80;
+}
+
+.form-hash-status.is-mismatch {
+  color: #f87171;
+}
+
 .verify-button {
   margin-top: 0.25rem;
   background-color: var(--color-accent);

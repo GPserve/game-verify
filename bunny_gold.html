@@ -32,6 +32,20 @@
           </div>
 
           <div class="form-group">
+            <label class="form-label" for="server-seed-hash">Server Seed Hash <span class="form-label-optional">(optional)</span></label>
+            <input
+              class="form-input"
+              type="text"
+              id="server-seed-hash"
+              name="server-seed-hash"
+              placeholder="Enter the Server Seed Hash shown before this round"
+              autocomplete="off"
+              spellcheck="false"
+            >
+            <span class="form-hash-status" id="server-seed-hash-status" hidden></span>
+          </div>
+
+          <div class="form-group">
             <label class="form-label" for="client-seed">Client Seed</label>
             <input
               class="form-input"
@@ -350,5 +364,6 @@
       });
     })();
   </script>
+  <script src="assets/js/seed_hash.js"></script>
 </body>
 </html>
