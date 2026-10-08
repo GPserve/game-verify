@@ -620,3 +620,83 @@ body {
 .card-grid-row .playing-card {
   width: 64px;
 }
+
+/* Frog Cross board: mirrors the back-office bet detail — nine rows with row 9
+   on top, each pad shown as a frog (safe) or a withered leaf (trap). */
+.frog-board {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.frog-board-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.frog-board-label {
+  width: 3.25rem;
+  margin-right: 4px;
+  text-align: right;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.frog-board-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+}
+
+.frog-board-cell svg {
+  width: 18px;
+  height: 18px;
+}
+
+.frog-board-cell--frog {
+  background-color: rgba(20, 83, 45, 0.4);
+  border: 1px solid #15803d;
+  color: #4ade80;
+}
+
+.frog-board-cell--leaf {
+  background-color: #475569;
+  border: 1px solid #64748b;
+  color: #94a3b8;
+}
+
+.frog-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem 0.75rem;
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.frog-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.frog-legend-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.frog-legend-swatch--frog {
+  background-color: #4ade80;
+}
+
+.frog-legend-swatch--leaf {
+  background-color: #9ca3af;
+}

@@ -90,12 +90,14 @@
       </section>
 
       <section class="result-card" id="result-card" hidden>
-        <p class="result-label">Sunk Pads per Row (row 1 to 9)</p>
-        <p class="result-value" id="sunk-result">--</p>
-        <p class="result-label">Frog Pads per Row (row 1 to 9)</p>
-        <p class="result-value" id="frogs-result">--</p>
-        <p class="result-label">Full Order per Row (row 1 to 9)</p>
-        <p class="result-value" id="full-order-result">--</p>
+        <!-- 九排荷葉盤面，對齊後台注單明細：排 9 在最上、排 1 在最下 -->
+        <div class="frog-board" id="frog-board"></div>
+        <div class="frog-legend">
+          <span class="frog-legend-item"><span class="frog-legend-swatch frog-legend-swatch--frog"></span>Frog (safe pad)</span>
+          <span class="frog-legend-item"><span class="frog-legend-swatch frog-legend-swatch--leaf"></span>Withered leaf (trap)</span>
+        </div>
+        <p class="result-label result-label--spaced">Full Order per Row (row 1 to 9)</p>
+        <p class="result-value result-value--compact" id="full-order-result">--</p>
       </section>
     </main>
 
@@ -111,8 +113,7 @@
       const clientSeedInput = document.getElementById("client-seed");
       const nonceInput = document.getElementById("nonce");
       const difficultyInput = document.getElementById("difficulty");
-      const sunkResultEl = document.getElementById("sunk-result");
-      const frogsResultEl = document.getElementById("frogs-result");
+      const boardEl = document.getElementById("frog-board");
       const fullOrderResultEl = document.getElementById("full-order-result");
       const resultCardEl = document.getElementById("result-card");
       const serverSeedErrorEl = document.getElementById("server-seed-error");
@@ -130,8 +131,7 @@
 
       const hideResult = () => {
         resultCardEl.hidden = true;
-        sunkResultEl.textContent = "--";
-        frogsResultEl.textContent = "--";
+        boardEl.replaceChildren();
         fullOrderResultEl.textContent = "--";
       };
 
@@ -155,6 +155,42 @@
       // 與 BettingRecord 序列化同形：排間 "; "、排內 ","（1-based）
       const joinRows = (rows, pick) => rows.map((r) => pick(r).join(",")).join("; ");
 
+      // 荷葉圖示（Tabler leaf / leaf-off，與後台同款）
+      const LEAF_ICON =
+        '<path d="M5 21c.5 -4.5 2.5 -8 7 -10" /><path d="M9 18c6.218 0 10.5 -3.288 11 -12v-2h-4.014c-9 0 -11.986 4 -12 9c0 1 0 3 2 5h3z" />';
+      const LEAF_OFF_ICON =
+        '<path d="M5 21c.5 -4.5 2.5 -8 7 -10" /><path d="M7.536 7.586c-1.632 1.102 -2.522 2.82 -2.536 5.414c0 1 0 3 2 5h3c3.18 0 5.84 -.844 7.75 -2.473m1.704 -2.3c.98 -1.857 1.546 -4.191 1.546 -6.227v-2h-4.014c-2.055 0 -3.783 .209 -5.207 .609" /><path d="M3 3l18 18" />';
+      const iconSvg = (paths) =>
+        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+
+      // rows 為排 1 → 排 9；畫面由排 9 寫到排 1。每格依是否為枯葉判定青蛙／枯葉兩態
+      // （驗證頁沒有玩家腳印，只呈現種子決定的盤面）。
+      const renderBoard = (rows, padCount) => {
+        const rowEls = rows
+          .map((row, index) => {
+            const rowNo = index + 1;
+            const rowEl = document.createElement("div");
+            rowEl.className = "frog-board-row";
+
+            const labelEl = document.createElement("span");
+            labelEl.className = "frog-board-label";
+            labelEl.textContent = `Row ${rowNo}`;
+            rowEl.append(labelEl);
+
+            for (let pos = 1; pos <= padCount; pos += 1) {
+              const isLeaf = row.sunk.includes(pos);
+              const cellEl = document.createElement("div");
+              cellEl.className = `frog-board-cell frog-board-cell--${isLeaf ? "leaf" : "frog"}`;
+              cellEl.title = `Row ${rowNo}, pad ${pos}: ${isLeaf ? "withered leaf" : "frog"}`;
+              cellEl.innerHTML = iconSvg(isLeaf ? LEAF_OFF_ICON : LEAF_ICON);
+              rowEl.append(cellEl);
+            }
+            return rowEl;
+          })
+          .reverse();
+        boardEl.replaceChildren(...rowEls);
+      };
+
       const recompute = async () => {
         const serverSeed = serverSeedInput.value;
         const clientSeed = clientSeedInput.value;
@@ -169,7 +205,7 @@
         const nonce = parseIntField(nonceRaw, 0);
         const difficulty = difficultyInput.value;
 
-        const { rows } = await GanFrogCross.computeFrogCrossResult(
+        const { rows, padCount } = await GanFrogCross.computeFrogCrossResult(
           serverSeed,
           clientSeed,
           nonce,
@@ -177,8 +213,7 @@
         );
 
         if (token !== latestToken) return;
-        sunkResultEl.textContent = joinRows(rows, (r) => r.sunk);
-        frogsResultEl.textContent = joinRows(rows, (r) => r.frogs);
+        renderBoard(rows, padCount);
         fullOrderResultEl.textContent = joinRows(rows, (r) => r.fullOrder);
         resultCardEl.hidden = false;
       };
