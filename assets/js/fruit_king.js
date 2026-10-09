@@ -1,5 +1,5 @@
 // GanPlay Fruit King 公平性驗證頁腳本
-// 純瀏覽器端計算，演算法逐位元組對齊 mini_api services/seed_service.py::generate_slot_result。
+// 純瀏覽器端計算，演算法與產線結果逐位元組一致。
 //
 // 演算法步驟：
 //   1. byte 流：HMAC_SHA256(key=server_seed, msg="{client_seed}:{nonce}:{cursor}")，
@@ -8,14 +8,14 @@
 //   3. 該軸停止位置 stop = floor(f × 該軸環帶長度)。
 //   4. 盤面第 row 列第 reel 軸的符號 = 環帶[(stop + row) % 環帶長度]。
 //
-// 環帶（REEL_STRIPS）為本局規格的一部分、由產線決定性展開後導出，順序不可變；
+// 環帶為本局規格的一部分、由產線決定性展開後導出，順序不可變；
 // 玩家可依上述步驟自行重建盤面，結果必與遊戲端一致。
 const GanFruitKing = (() => {
   const textEncoder = new TextEncoder();
 
   const ROWS = 3;
 
-  // 各軸環帶：對齊 fruit_king_config.py::REEL_STRIPS（順序即規格，不可重排）
+  // 各軸環帶：與產線配置一致（順序即規格，不可重排）
   const REEL_STRIPS = [
     // Reel 1 (30 stops)
     [
@@ -84,7 +84,7 @@ const GanFruitKing = (() => {
   };
 
   /**
-   * 產生各軸停止位置。逐位元組對齊 generate_slot_result。
+   * 產生各軸停止位置。與產線結果逐位元組一致。
    * @returns {Promise<number[]>} 長度 = 軸數
    */
   const generateStops = async (serverSeed, clientSeed, nonce) => {
@@ -130,10 +130,10 @@ const GanFruitKing = (() => {
 
   /**
    * 完整一局：觸發轉 + 全部免費轉（免轉每轉 nonce 逐轉遞增）。
-   * 對齊 slot_engine.py::run_round 的免轉發放與重觸發規則。
+   * 免轉發放與重觸發規則與產線一致。
    */
 
-  // 20 條固定賠付線：值 = 該軸取第幾列（0 = 最上），對齊 fruit_king_config.py::PAYLINES
+  // 20 條固定賠付線：值 = 該軸取第幾列（0 = 最上），與產線配置一致
   const PAYLINES = [
     [1, 1, 1, 1, 1],
     [0, 0, 0, 0, 0],
@@ -157,9 +157,9 @@ const GanFruitKing = (() => {
     [0, 0, 0, 1, 2],
   ];
 
-  // 賠付表：對齊 fruit_king_config.py::PAYTABLE。
+  // 賠付表：與產線賠付表一致。
   //
-  // 🔴 **僅供內部判定「哪個解釋勝出」與「連幾個才算中獎」，不對外顯示。**
+  // 🔴 **僅用於判定「哪個解釋勝出」與「連幾個才算中獎」，不對外顯示。**
   // 表上的數字是賠付表原值；玩家實際拿到的倍率是它乘上商戶設定的 RTP 縮放係數，
   // 兩者不同。本頁的職責是驗證「開獎結果」，賠付金額不在此呈現（那屬 RTP 試算站）。
   const PAYTABLE = {
@@ -185,7 +185,7 @@ const GanFruitKing = (() => {
   /**
    * 單線判定：取所有解釋中賠付最高者、不疊加。
    * 左起連續；WILD 可替代除 SCATTER 外任一符號、亦可自成連線。
-   * 對齊 slot_engine.py::_line_candidates / _match_count / _evaluate_line。
+   * 候選符號、連續匹配與賠付計算依相同規則進行。
    */
   const evaluateLine = (cells) => {
     const first = cells[0];

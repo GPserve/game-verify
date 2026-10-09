@@ -1,6 +1,6 @@
 // GanPlay 單副 52 張洗牌（Stake Fisher-Yates pick-and-remove）共用模組
-// 逐位元組對齊 mini_api services/seed_service.py 的 generate_video_poker_result／generate_niu_niu_result
-// 與 enums/card.py::build_card_pool：
+// 洗牌結果與產線逐位元組一致，供視訊撲克與妞妞共同使用
+// 牌池建立與抽牌步驟：
 //   ① byte 流：HMAC_SHA256(key=server_seed, msg="{client_seed}:{nonce}:{cursor}") 的 32 個原始 bytes，cursor 從 0 遞增
 //   ② 每 4 bytes 組一個 float：Σ byte[i] / 256^(i+1)（i = 0..3）
 //   ③ 牌池依序：花色 黑桃→紅心→梅花→方塊，點數 A→K；card = (花色碼 + 10) * 16 + 點數碼

@@ -1,5 +1,5 @@
 // GanPlay Frog Cross 公平性驗證演算法模組
-// 純瀏覽器端計算，逐位元組對齊 mini_api services/seed_service.py::generate_frog_cross_result
+// 純瀏覽器端計算，與產線結果逐位元組一致；依序取得各排結果
 //（Stake Dragon Tower 官方演算法，與 chicken 共用同一套 HMAC byte 流與 Fisher-Yates，只差映射）。
 //
 // 演算法步驟：
@@ -13,7 +13,7 @@
 const GanFrogCross = (() => {
   const ROWS = 9;
 
-  // 難度 → 每排青蛙數 / 每排荷葉數（對齊 mini_api FROG_CROSS_DIFFICULTY_MAP）
+  // 難度 → 每排青蛙數 / 每排荷葉數（與產線配置一致）
   const DIFFICULTY_MAP = {
     Easy: { frogCount: 3, padCount: 4 },
     Medium: { frogCount: 2, padCount: 3 },
@@ -68,7 +68,7 @@ const GanFrogCross = (() => {
         const idx = Math.floor(f * pool.length);
         frogs.push(pool.splice(idx, 1)[0]);
       }
-      // 剩下的 pool 就是枯葉；fullOrder = 青蛙 pick 順序接枯葉剩餘順序（對齊 BettingRecord.full_result）
+      // 剩下的 pool 就是枯葉；fullOrder = 青蛙 pick 順序接枯葉剩餘順序（保留抽取順序）
       rows.push({ frogs, sunk: pool.slice(), fullOrder: frogs.concat(pool) });
     }
 

@@ -1,4 +1,4 @@
-// GanPlay Video Poker 牌型判定（對齊 mini_api video_poker_engine：Jacks or Better，A 可當 A-2-3-4-5 低端順子）
+// GanPlay Video Poker 牌型判定（Jacks or Better，A 可當 A-2-3-4-5 低端順子；判定與產線一致）
 // 洗牌序列前 5 張是起手；換牌時依「被換掉的位置由小到大」依序取第 6 張起補上。
 const GanVideoPoker = (() => {
   const { suitOf, rankOf } = GanCardShuffle;

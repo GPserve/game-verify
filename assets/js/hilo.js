@@ -1,4 +1,4 @@
-// GanPlay Hilo 公平性驗證（對齊 mini_api services/seed_service.py::generate_hilo_result 與 hilo_cards.HILO_STAKE_INDEX_TO_CARD）
+// GanPlay Hilo 公平性驗證（結果與產線一致，依投注索引取得對應牌值）
 //   ① HMAC_SHA256(key=server_seed, msg="{client_seed}:{nonce}:{cursor}") 的 32 個原始 bytes，cursor 從 0 遞增
 //   ② 每 4 bytes 一個 0～1 的數：Σ byte[i] / 256^(i+1)
 //   ③ index = floor(數 × 52)，每張獨立（有放回）

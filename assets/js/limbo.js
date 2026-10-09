@@ -1,5 +1,5 @@
 // GanPlay Limbo 公平性驗證頁腳本
-// 純瀏覽器端計算，演算法逐位元組對齊 mini_api services/seed_service.py::generate_limbo_result。
+// 純瀏覽器端計算，演算法與產線結果逐位元組一致。
 //
 // 演算法步驟：
 //   1. msg = "{client_seed}:{nonce}"

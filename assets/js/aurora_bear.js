@@ -1,6 +1,6 @@
 // GanPlay Aurora Bear 公平性驗證頁腳本
-// 純瀏覽器端計算，演算法逐位元組對齊 mini_api services/seed_service.py::generate_slot_result_with_reveal
-// 與 modules/client/game/slot/aurora_bear/aurora_bear_engine.py 的整局流程。
+// 純瀏覽器端計算，演算法與產線結果逐位元組一致
+// 並依相同的整局流程計算。
 //
 // 開獎步驟：
 //   1. byte 流：HMAC_SHA256(key=server_seed, msg="{client_seed}:{nonce}:{cursor}")，
@@ -87,15 +87,15 @@ const GanAuroraBear = (() => {
     [2, 2, 1, 1, 1],
   ];
 
-  // 基礎轉與免費轉用同一份環帶（對齊 aurora_bear_config.py::REEL_STRIPS）
+  // 基礎轉與免費轉用同一份環帶，與產線配置一致
   const REEL_STRIPS = [EDGE_STRIP, MIDDLE_STRIP, MIDDLE_STRIP, MIDDLE_STRIP, EDGE_STRIP];
 
   // 揭曉對照：索引 0~8 對應的一般符號（順序即規格，不可重排）
   const REVEAL_ORDER = ["L01", "L02", "L03", "L04", "L05", "L06", "H01", "H02", "H03"];
 
-  // 賠付表：對齊 aurora_bear_config.py::PAYTABLE（宣告順序即決勝順序）。
+  // 賠付表：與產線賠付表一致（宣告順序即決勝順序）。
   //
-  // 🔴 **僅供內部判定「哪個解釋勝出」與「連幾個才算中獎」，不對外顯示。**
+  // 🔴 **僅用於判定「哪個解釋勝出」與「連幾個才算中獎」，不對外顯示。**
   // 玩家實際拿到的倍率是它乘上商戶設定的 RTP 縮放係數，兩者不同；本頁只驗開獎結果。
   const PAYTABLE = {
     L01: { 4: 1.3, 5: 2.8 },
@@ -153,7 +153,7 @@ const GanAuroraBear = (() => {
     return Array.from(new Uint8Array(signature));
   };
 
-  /** 產生各軸停止位置與揭曉索引。逐位元組對齊 generate_slot_result_with_reveal。 */
+  /** 產生各軸停止位置與揭曉索引。與產線結果逐位元組一致。 */
   const generateStops = async (serverSeed, clientSeed, nonce) => {
     let cursor = 0;
     let buffer = [];

@@ -1,5 +1,5 @@
 // GanPlay game-verify 伺服器種子承諾比對（各遊戲驗證頁共用）
-// 規則（對齊 mini_api services/seed_service.get_server_seed_hash）：
+// 種子承諾比對規則：
 //   server_seed_hash = SHA256(server_seed 的 UTF-8 bytes) 的小寫 hex
 // 玩家下注前看到的是 hash，開獎後才拿到 server_seed；兩者比對一致，
 // 才能證明本局用的 server_seed 就是下注前承諾的那一顆。

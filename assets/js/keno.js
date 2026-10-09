@@ -1,20 +1,20 @@
 // GanPlay Keno 公平性驗證頁腳本
-// 純瀏覽器端計算，演算法逐位元組對齊 mini_api services/seed_service.py::generate_keno_result（共用 create_nums）。
+// 純瀏覽器端計算，演算法與產線結果逐位元組一致（使用雙輪洗牌）。
 //
 // 演算法步驟：
 //   1. hash_hex = HMAC_SHA256(key=server_seed, msg="{client_seed}:{nonce}")
-//   2. 第一輪 create_nums(KENO_POOL, hash_hex)  — KENO_POOL 為固定號碼池（順序不可變）
+//   2. 第一輪排序(固定號碼池, hash_hex)  — 號碼池順序不可變
 //   3. seed2 = SHA256(hash_hex)
-//   4. 第二輪 create_nums(第一輪結果, seed2)
+//   4. 第二輪排序(第一輪結果, seed2)
 //   5. drawn = 第二輪每個元素的 num.num（⚠ 巢狀：第二輪元素為 { num: {num, hash}, hash }），取前 10 個
 //
-// create_nums（雙輪洗牌共用核心，對齊 Python，與 mines.js 完全相同寫法）：
+// 雙輪洗牌共用核心（穩定排序，兩種遊戲使用相同流程）：
 //   給定 items 與 hash_str，先算 h = SHA256(hash_str)，依序把每個 item 配上當前 h，
 //   每配一個後 h 左旋一位（h = h.slice(1) + h[0]），最後依 h 字典序做「穩定排序」。
 const GanKeno = (() => {
   const textEncoder = new TextEncoder();
 
-  // 真相源固定號碼池（順序不可變，對齊 seed_service.py::KENO_POOL）。
+  // 固定號碼池（順序不可變，與產線配置一致）。
   const KENO_POOL = [
     1, 30, 11, 40, 2, 29, 12, 39, 3, 28, 13, 38, 4, 27, 14, 37, 5, 26,
     15, 36, 6, 25, 16, 35, 7, 24, 17, 34, 8, 23, 18, 33, 9, 22, 19, 32,
@@ -48,7 +48,7 @@ const GanKeno = (() => {
     return bytesToHex(digest);
   };
 
-  // createNums：純字串操作、無 BigInt，逐位元組對齊 Python create_nums。
+  // 排序運算：純字串操作、無 BigInt，結果與產線逐位元組一致。
   // items 可以是整數陣列（第一輪）或第一輪結果物件陣列（第二輪，形成巢狀結構）。
   const createNums = async (items, hashStr) => {
     let h = await sha256Hex(hashStr);
@@ -58,7 +58,7 @@ const GanKeno = (() => {
       h = h.slice(1) + h[0];
     }
     // hex 字典序、字串比較天然對齊；Array.sort 自 ES2019 起保證穩定排序，
-    // 對齊 Python list.sort 的穩定排序語意。
+    // 維持穩定排序語意。
     nums.sort((a, b) => (a.hash < b.hash ? -1 : a.hash > b.hash ? 1 : 0));
     return nums;
   };
@@ -72,7 +72,7 @@ const GanKeno = (() => {
 
     // ⚠ 巢狀陷阱：secondRound 的 items 是 firstRound 的物件陣列，
     // 因此 secondRound 元素為 { num: { num, hash }, hash }，
-    // 取整數必須 m.num.num（對齊 Python m["num"]["num"]），禁止壓平。
+    // 取整數必須 m.num.num（保留巢狀索引），禁止壓平。
     const drawn = secondRound.map((m) => m.num.num).slice(0, 10);
 
     return { drawn };

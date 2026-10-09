@@ -1,8 +1,8 @@
 // GanPlay Chicken / Bao / Penguin 共用公平性驗證演算法模組
-// 純瀏覽器端計算，逐位元組對齊 mini_api services/seed_service.py::generate_chicken_result（Stake Fisher-Yates）。
+// 純瀏覽器端計算，與產線結果逐位元組一致；使用 Stake Fisher-Yates 洗牌。
 //
 // chicken / bao / penguin 三款業務底層共用同一套 Fisher-Yates 洗牌演算法，僅 total_cells（洗牌池總格數）不同：
-//   chicken = 20（generate_chicken_result 預設值）、bao = 20、penguin = 22。
+//   chicken = 20（預設值）、bao = 20、penguin = 22。
 // 本模組把 total_cells 作為參數，避免同一份演算法在三個頁面各自複製一份（可維護性優先）。
 //
 // 演算法步驟：
@@ -27,7 +27,7 @@ const GanChicken = (() => {
       ["sign"],
     );
     const signature = await crypto.subtle.sign("HMAC", cryptoKey, msgBytes);
-    // ArrayBuffer → raw bytes（禁止轉 hex 再 parse，對齊 Python digest() 的原始 bytes 語意）。
+    // ArrayBuffer → raw bytes（禁止轉 hex 再 parse，保留摘要的原始 bytes 語意）。
     return new Uint8Array(signature);
   };
 

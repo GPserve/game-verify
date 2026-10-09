@@ -90,7 +90,7 @@
       </section>
 
       <section class="result-card" id="result-card" hidden>
-        <!-- 九排荷葉盤面，對齊後台注單明細：排 9 在最上、排 1 在最下 -->
+        <!-- 九排荷葉盤面：排 9 在最上、排 1 在最下 -->
         <div class="frog-board" id="frog-board"></div>
         <div class="frog-legend">
           <span class="frog-legend-item"><span class="frog-legend-swatch frog-legend-swatch--frog"></span>Frog (safe pad)</span>
@@ -152,10 +152,10 @@
         return !serverSeedMissing && !clientSeedMissing && !nonceMissing;
       };
 
-      // 與 BettingRecord 序列化同形：排間 "; "、排內 ","（1-based）
+      // 結果文字格式：排間 "; "、排內 ","（1-based）
       const joinRows = (rows, pick) => rows.map((r) => pick(r).join(",")).join("; ");
 
-      // 荷葉圖示（Tabler leaf / leaf-off，與後台同款）
+      // 荷葉圖示（Tabler leaf / leaf-off，與盤面同款）
       const LEAF_ICON =
         '<path d="M5 21c.5 -4.5 2.5 -8 7 -10" /><path d="M9 18c6.218 0 10.5 -3.288 11 -12v-2h-4.014c-9 0 -11.986 4 -12 9c0 1 0 3 2 5h3z" />';
       const LEAF_OFF_ICON =

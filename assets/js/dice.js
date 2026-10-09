@@ -1,5 +1,5 @@
 // GanPlay Dice 公平性驗證頁腳本
-// 純瀏覽器端計算，演算法逐位元組對齊 mini_api services/seed_service.py::generate_dice_result。
+// 純瀏覽器端計算，演算法與產線結果逐位元組一致。
 //
 // 演算法步驟：
 //   1. message = "{client_seed}:{nonce}"
@@ -8,7 +8,7 @@
 //   4. target_hex = hash_hex[index : index+14]
 //   5. num = int(target_hex, 16) >> 3
 //   6. raw_float = num * 2^-53 * 10000
-//   7. dice_result = raw_float / 100，輸出小數點後 2 位
+//   7. 骰點結果 = raw_float / 100，輸出小數點後 2 位
 //
 // 步驟 3/4/5 的中間值皆超過 Number.MAX_SAFE_INTEGER（2^53），全程使用 BigInt，
 // 直到步驟 5 完成後（num <= 2^53）才安全轉為 Number 做步驟 6 的浮點運算。

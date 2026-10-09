@@ -1,5 +1,5 @@
 // GanPlay Plinko 公平性驗證頁腳本
-// 純瀏覽器端計算，演算法逐位元組對齊 mini_api services/seed_service.py::generate_plinko_result。
+// 純瀏覽器端計算，演算法與產線結果逐位元組一致。
 //
 // 演算法步驟：
 //   1. msg = "{client_seed}:{nonce}"
@@ -23,7 +23,7 @@ const GanPlinko = (() => {
       ["sign"],
     );
     const signature = await crypto.subtle.sign("HMAC", cryptoKey, msgBytes);
-    // ArrayBuffer → raw bytes（禁止轉 hex 再 parse，對齊 Python digest 的原始 bytes 語意）。
+    // ArrayBuffer → raw bytes（禁止轉 hex 再 parse，保留摘要的原始 bytes 語意）。
     return new Uint8Array(signature);
   };
 

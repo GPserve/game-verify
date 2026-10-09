@@ -1,21 +1,21 @@
 // GanPlay Mines 公平性驗證頁腳本
-// 純瀏覽器端計算，演算法逐位元組對齊 mini_api services/seed_service.py::generate_mines_result（共用 create_nums）。
+// 純瀏覽器端計算，演算法與產線結果逐位元組一致（使用雙輪洗牌）。
 //
 // 演算法步驟：
 //   1. hash_hex = HMAC_SHA256(key=server_seed, msg="{client_seed}:{nonce}")
-//   2. 第一輪 create_nums(all_nums, hash_hex)  — all_nums 為固定號碼池（順序不可變）
+//   2. 第一輪排序(固定號碼池, hash_hex)  — 號碼池順序不可變
 //   3. seed2 = SHA256(hash_hex)
-//   4. 第二輪 create_nums(第一輪結果, seed2)
+//   4. 第二輪排序(第一輪結果, seed2)
 //   5. result = 第二輪每個元素的 num.num（⚠ 巢狀：第二輪元素為 { num: {num, hash}, hash }）
 //   6. minePositions = result 前 mine_count 個
 //
-// create_nums（雙輪洗牌共用核心，對齊 Python）：
+// 雙輪洗牌共用核心（穩定排序）：
 //   給定 items 與 hash_str，先算 h = SHA256(hash_str)，依序把每個 item 配上當前 h，
 //   每配一個後 h 左旋一位（h = h.slice(1) + h[0]），最後依 h 字典序做「穩定排序」。
 const GanMines = (() => {
   const textEncoder = new TextEncoder();
 
-  // 真相源固定號碼池（順序不可變，對齊 seed_service.py::generate_mines_result::all_nums）。
+  // 固定號碼池（順序不可變，與產線配置一致）。
   const ALL_NUMS = [
     7, 2, 19, 25, 1, 13, 5, 24, 14, 6, 15, 9, 22, 16, 3, 17, 18, 20, 8, 21, 4,
     12, 10, 23, 11,
@@ -48,7 +48,7 @@ const GanMines = (() => {
     return bytesToHex(digest);
   };
 
-  // createNums：純字串操作、無 BigInt，逐位元組對齊 Python create_nums。
+  // 排序運算：純字串操作、無 BigInt，結果與產線逐位元組一致。
   // items 可以是整數陣列（第一輪）或第一輪結果物件陣列（第二輪，形成巢狀結構）。
   const createNums = async (items, hashStr) => {
     let h = await sha256Hex(hashStr);
@@ -58,7 +58,7 @@ const GanMines = (() => {
       h = h.slice(1) + h[0];
     }
     // hex 字典序、字串比較天然對齊；Array.sort 自 ES2019 起保證穩定排序，
-    // 對齊 Python list.sort 的穩定排序語意。
+    // 維持穩定排序語意。
     nums.sort((a, b) => (a.hash < b.hash ? -1 : a.hash > b.hash ? 1 : 0));
     return nums;
   };
@@ -72,7 +72,7 @@ const GanMines = (() => {
 
     // ⚠ 巢狀陷阱：secondRound 的 items 是 firstRound 的物件陣列，
     // 因此 secondRound 元素為 { num: { num, hash }, hash }，
-    // 取整數必須 m.num.num（對齊 Python m["num"]["num"]），禁止壓平。
+    // 取整數必須 m.num.num（保留巢狀索引），禁止壓平。
     const result = secondRound.map((m) => m.num.num);
     const minePositions = result.slice(0, mineCount);
 

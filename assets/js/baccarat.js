@@ -1,6 +1,6 @@
 // GanPlay Baccarat 公平性驗證頁腳本
-// 純瀏覽器端計算，演算法逐位元組對齊 mini_api services/seed_service.py::generate_baccarat_result
-// 與 enums/card.py 之 build_card_pool / encode_card / decode_card_suit / decode_card_rank。
+// 純瀏覽器端計算，演算法與產線結果逐位元組一致
+// 並遵循相同的牌池建立與牌值編解碼規則。
 //
 // 每局固定 6 張生成牌（有放回、無實體副牌概念），與 blackjack 完全相同的
 // sliding window 演算法，唯一差異是 i = 0..5。第 i 張：
@@ -11,14 +11,14 @@
 //   5. num = int(target_hex, 16) >> 3
 //   6. f = num * 2^-53                    ∈ [0, 1)
 //   7. card_index = floor(f * 52)
-//   8. card = CARD_POOL[card_index]        （原始整數編碼值，供對拍用）
+//   8. card = CARD_POOL[card_index]        （原始整數編碼值，供核對用）
 //
 // 步驟 3/4/5 的中間值皆超過 Number.MAX_SAFE_INTEGER（2^53），全程使用 BigInt，
 // 直到步驟 5 完成後（num <= 2^53）才安全轉為 Number 做步驟 6/7 的浮點運算。
 //
-// 牌值編碼公式（對齊 enums/card.py）：
+// 牌值編碼公式：
 //   card = (花色碼 + 10) * 16 + 點數碼
-// 解碼（逐位對齊 decode_card_suit / decode_card_rank）：
+// 牌值解碼公式：
 //   suitIndex = ((card & 240) >> 4) - 10   （0=♠ 1=♥ 2=♣ 3=♦）
 //   rank = card % 16                        （1=A、2..10、11=J、12=Q、13=K）
 //
@@ -34,7 +34,7 @@ const GanBaccarat = (() => {
 
   // 牌池：以 encode 公式重建，不手抄整數字面。
   // 花色外層順序 SPADE→HEART→CLUB→DIAMOND（花色碼 0,1,2,3）、
-  // 每花色內層點數 ACE→KING（點數碼 1..13），對齊 enums/card.py::build_card_pool。
+  // 每花色內層點數 ACE→KING（點數碼 1..13），依此順序建立牌池。
   const CARD_POOL = [];
   for (let suitCode = 0; suitCode < 4; suitCode += 1) {
     for (let rankCode = 1; rankCode <= 13; rankCode += 1) {
@@ -95,7 +95,7 @@ const GanBaccarat = (() => {
   const computeBaccaratResult = async (serverSeed, clientSeed, nonce) => {
     const cards = [];
     for (let i = 0; i < 6; i += 1) {
-      // 逐張依序 await，確保 message 內索引 i 與 mini_api for 迴圈順序完全一致。
+      // 逐張依序 await，確保 message 內索引 i 與產線的迴圈順序完全一致。
       // eslint-disable-next-line no-await-in-loop
       const card = await drawCard(serverSeed, clientSeed, nonce, i);
       cards.push(card);
