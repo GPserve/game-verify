@@ -700,3 +700,156 @@ body {
 .frog-legend-swatch--leaf {
   background-color: #9ca3af;
 }
+
+/* Cascade board (Dasheng, 6 reels x 5 rows). The ink artwork is drawn for a
+   paper background, so cells get a light face instead of the page colour. */
+.board-reels--six {
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  padding: 4px 0;
+}
+
+.board-reels--six .board-reel {
+  gap: 4px;
+}
+
+.cascade-cell {
+  padding: 0.2rem;
+  background-color: #ece6d8;
+  border: 2px solid transparent;
+}
+
+.cascade-cell .cell-art {
+  max-width: 56px;
+}
+
+/* Cell cleared by the next cascade. */
+.cascade-cell--cleared {
+  border-color: #ef4444;
+  background-color: #f6c9c3;
+}
+
+/* Cell that dropped in to refill the column after the previous cascade. */
+.cascade-cell--dropped {
+  border-style: dashed;
+  border-color: #0284c7;
+}
+
+/* Multiplier value written over the ink-drop artwork. */
+.cascade-mult {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-shadow: 0 0 3px #000, 0 0 2px #000;
+  pointer-events: none;
+}
+
+.cascade-legend-cleared {
+  color: #f87171;
+}
+
+.cascade-legend-dropped {
+  color: #38bdf8;
+}
+
+.cascade-step-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 0.9rem;
+}
+
+/* Winning symbol in a cascade caption: small artwork plus how many cleared. */
+.cascade-win {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.1rem 0.35rem 0.1rem 0.1rem;
+  background-color: #ece6d8;
+  border-radius: 6px;
+}
+
+.cascade-win .cell-art {
+  width: 26px;
+  max-width: 26px;
+}
+
+.cascade-win-count {
+  color: var(--color-bg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.cascade-facts {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  margin-top: 0.9rem;
+}
+
+.cascade-fact {
+  display: flex;
+  flex-direction: column;
+  padding: 0.45rem 0.6rem;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-accent);
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+
+.cascade-fact-label {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+/* Free spins are collapsed; a spin's boards are drawn when it is opened. */
+.cascade-spin {
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.cascade-spin-title {
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+
+.cascade-spin[open] .cascade-spin-title {
+  margin-bottom: 0.5rem;
+  color: var(--color-accent);
+}
+
+.cascade-mult {
+  font-size: clamp(0.6rem, 2.5vw, 0.85rem);
+  white-space: nowrap;
+}
+
+.cascade-cell--upgraded {
+  border-color: #22c55e;
+  box-shadow: inset 0 0 0 1px #166534;
+}
+
+.cascade-legend-upgraded {
+  color: #22c55e;
+}
+
+.cascade-upgrades {
+  margin: 0.25rem 0;
+  color: #166534;
+  font-size: 0.85rem;
+  font-weight: 700;
+}

@@ -1,0 +1,72 @@
+.board-reels--six,
+.pharaoh-top {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 5px;
+}
+.pharaoh-board { width: 100%; overflow: hidden; }
+.pharaoh-top { padding: 5px 6px 0; }
+.pharaoh-top .pharaoh-cell { min-height: 52px; }
+.pharaoh-reels { margin-top: 0; height: 326px; align-items: stretch; }
+.pharaoh-reel {
+  display: flex;
+  flex-direction: column;
+  justify-content: stretch;
+  gap: 3px;
+  min-width: 0;
+  height: 100%;
+}
+.pharaoh-cell {
+  flex: var(--block-height) 1 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  overflow: visible;
+}
+.pharaoh-cell .cell-art {
+  display: block;
+  width: auto;
+  max-width: 92%;
+  height: auto;
+  max-height: 90%;
+  object-fit: contain;
+}
+.pharaoh-cell--gold { border: 2px solid #f6c344; }
+.pharaoh-cell--converted { box-shadow: 0 0 0 2px #f6c344, 0 0 15px 5px #f6c344aa; z-index: 1; }
+.pharaoh-cell.cascade-cell--cleared { border: 2px solid #ef4444; box-shadow: inset 0 0 0 1px #ef4444; }
+.pharaoh-cell.cascade-cell--dropped { outline: 2px dashed #38bdf8; outline-offset: -4px; }
+.pharaoh-cell .board-cell-badge { top: 2px; right: 2px; z-index: 2; }
+.pharaoh-decrement {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  padding: 0 3px;
+  border-radius: 3px;
+  background: #7f1d1d;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+.pharaoh-legend-gold,
+.pharaoh-legend-converted { color: #f6c344; }
+.pharaoh-ways {
+  margin: 0 0 0.75rem;
+  text-align: right;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+.cascade-facts { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; margin: 0.7rem 0; }
+.cascade-fact { display: inline-flex; flex-direction: column; font-size: 0.9rem; }
+.cascade-fact-label { color: var(--color-text-muted); font-size: 0.75rem; }
+.cascade-step-head { margin-top: 1rem; }
+.cascade-win { display: inline-flex; align-items: center; gap: 0.25rem; margin-right: 0.5rem; color: var(--color-text); }
+.cascade-win .cell-art { width: 25px; height: 25px; object-fit: contain; }
+.cascade-spin-title { cursor: pointer; padding: 0.6rem 0; color: var(--color-accent); }
+@media (max-width: 560px) {
+  .pharaoh-reels { height: 260px; }
+  .pharaoh-top .pharaoh-cell { min-height: 40px; }
+  .board-reels--six, .pharaoh-top { gap: 3px; }
+  .pharaoh-cell .board-cell-badge { font-size: 0.6rem; }
+}

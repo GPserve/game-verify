@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pharaoh Cat Fairness Verification | GanPlay Provably Fair</title>
+  <meta name="description" content="GanPlay Pharaoh Cat fairness verification. Replay each spin and cascade from your seeds and nonce.">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/pharaoh_cat.css">
+</head>
+<body>
+  <div class="page">
+    <header class="site-header">
+      <h1 class="site-title">Pharaoh Cat Fairness Verification</h1>
+      <p class="site-subtitle">GanPlay Provably Fair Player Self-Service Verification</p>
+    </header>
+    <main class="site-main">
+      <section class="verify-card">
+        <form class="verify-form" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="server-seed">Server Seed</label>
+            <input class="form-input" type="text" id="server-seed" name="server-seed" placeholder="Enter the Server Seed for this round" autocomplete="off" spellcheck="false">
+            <span class="form-error" id="server-seed-error" hidden>Server Seed is required</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="server-seed-hash">Server Seed Hash <span class="form-label-optional">(optional)</span></label>
+            <input class="form-input" type="text" id="server-seed-hash" name="server-seed-hash" placeholder="Enter the Server Seed Hash shown before this round" autocomplete="off" spellcheck="false">
+            <span class="form-hash-status" id="server-seed-hash-status" hidden></span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="client-seed">Client Seed</label>
+            <input class="form-input" type="text" id="client-seed" name="client-seed" placeholder="Enter the Client Seed for this round" autocomplete="off" spellcheck="false">
+            <span class="form-error" id="client-seed-error" hidden>Client Seed is required</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="nonce">Nonce</label>
+            <input class="form-input" type="number" id="nonce" name="nonce" placeholder="Enter the Nonce of the first spin in this round" step="1" min="0" value="0">
+            <span class="form-error" id="nonce-error" hidden>Nonce is required</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="mode">Round Type</label>
+            <select class="form-input" id="mode" name="mode">
+              <option value="spin" selected>Spin</option>
+              <option value="buy">Buy Free Spins</option>
+            </select>
+          </div>
+          <button class="verify-button" type="submit">Verify / Calculate</button>
+        </form>
+      </section>
+      <section class="result-card" id="result-card" hidden>
+        <p class="result-label">Round</p>
+        <p class="result-value result-value--compact" id="summary-result">--</p>
+        <p class="board-legend cascade-legend">
+          <span class="cascade-legend-cleared">Red</span> = removed in the next cascade &middot;
+          <span class="cascade-legend-dropped">Dashed</span> = dropped in by the previous cascade &middot;
+          <span class="pharaoh-legend-gold">Gold border</span> = gold-frame symbol (number = wild turns) &middot;
+          <span class="pharaoh-legend-converted">Gold glow</span> = gold-frame converted to Wild
+        </p>
+        <div id="base-spin-section" hidden>
+          <p class="result-label result-label--spaced">Base Spin</p>
+          <div id="base-spin-result"></div>
+        </div>
+        <div id="free-spin-section" hidden>
+          <p class="result-label result-label--spaced" id="free-spin-label"></p>
+          <div id="free-spin-result"></div>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer"><p>&copy; 2026 GanPlay. All rights reserved.</p></footer>
+  </div>
+  <script src="assets/js/pharaoh_cat.js"></script>
+  <script>
+    (() => {
+      const get = id => document.getElementById(id);
+      const serverSeedInput = get("server-seed"), clientSeedInput = get("client-seed");
+      const nonceInput = get("nonce"), modeInput = get("mode");
+      const resultCard = get("result-card"), summaryResult = get("summary-result");
+      const baseSection = get("base-spin-section"), baseResult = get("base-spin-result");
+      const freeSection = get("free-spin-section"), freeResult = get("free-spin-result"), freeLabel = get("free-spin-label");
+      let latestToken = 0;
+      const files = {L01:"9",L02:"10",L03:"j",L04:"q",L05:"k",L06:"a",H01:"scarab",H02:"ankh",H03:"mask",H04:"cat",W:"wild",S:"scatter"};
+      const names = {L01:"9",L02:"10",L03:"J",L04:"Q",L05:"K",L06:"A",H01:"Scarab",H02:"Ankh",H03:"Mask",H04:"Cat",W:"Wild",S:"Scatter"};
+      const art = symbol => `<img class="cell-art" src="assets/images/pharaoh_cat/symbol-${files[symbol]}.webp" alt="${names[symbol]}" loading="lazy">`;
+      const key = pos => pos.kind === "top" ? `t:${pos.index}` : `r:${pos.reel}:${pos.row}`;
+      const mapByKey = positions => new Map((positions || []).map(pos => [key(pos),pos]));
+      const boardHtml = (board, ways, next, dropped) => {
+        const removed = mapByKey(next && next.removed);
+        const converted = mapByKey(next && next.goldFrameConverted);
+        const decremented = mapByKey(next && next.wildDecremented);
+        const added = mapByKey(dropped);
+        const cell = (symbol, digit, position, height) => {
+          const id = key(position), change = decremented.get(id);
+          const classes = ["board-cell","cascade-cell","pharaoh-cell"];
+          if (removed.has(id)) classes.push("cascade-cell--cleared");
+          if (converted.has(id)) classes.push("pharaoh-cell--converted");
+          if (added.has(id)) classes.push("cascade-cell--dropped");
+          if (digit > 0 && symbol !== "W") classes.push("pharaoh-cell--gold");
+          const shownDigit = change ? change.wildDigit : digit;
+          const badge = digit > 0 || change ? `<span class="board-cell-badge">${shownDigit}</span>` : "";
+          const decrement = change ? '<span class="pharaoh-decrement">−1</span>' : "";
+          return `<div class="${classes.join(" ")}" style="--block-height:${height}">${art(symbol)}${badge}${decrement}</div>`;
+        };
+        const top = Array.from({length:6}, (_,column) => column === 0 || column === 5
+          ? '<div class="pharaoh-top-empty"></div>'
+          : cell(board.top[column-1],0,{kind:"top",index:column-1},1)).join("");
+        const reels = board.reels.map((blocks,reel) => {
+          let row = 0;
+          return `<div class="board-reel pharaoh-reel">${blocks.map(block => {
+            const html = cell(block.symbol,block.wildDigit,{kind:"reel",reel,row},block.height);
+            row += block.height;
+            return html;
+          }).reverse().join("")}</div>`;
+        }).join("");
+        return `<div class="pharaoh-board"><div class="pharaoh-top">${top}</div><div class="board-reels board-reels--six pharaoh-reels">${reels}</div></div><p class="pharaoh-ways">${ways} ways</p>`;
+      };
+      const fact = (label,value) => `<span class="cascade-fact"><span class="cascade-fact-label">${label}</span>${value}</span>`;
+      const renderSpin = (container,spin) => {
+        const steps = spin.cascadeSteps;
+        const end = steps.length ? steps[steps.length-1].multiplierAfter : spin.multiplierAtStart;
+        const facts = [fact("Result",spin.isWin ? `Win, ${steps.length} cascade${steps.length === 1 ? "" : "s"}` : "No win"),
+          fact("Ways",`${spin.initialTotalWays} &rarr; ${spin.finalTotalWays}`)];
+        if (spin.type === "free") facts.push(fact("Multiplier",`&times;${spin.multiplierAtStart} &rarr; &times;${end}`));
+        facts.push(fact("SCATTER",spin.scatterCount));
+        if (spin.type === "base" && spin.triggered) facts.push(fact("Free spins",`triggered, ${spin.freeSpinsAdded} spins`));
+        if (spin.type === "free") facts.push(fact("Free spins",`left ${spin.freeSpinsBefore} &rarr; ${spin.freeSpinsAfter}${spin.freeSpinsAdded ? ` (+${spin.freeSpinsAdded})` : ""}`));
+        const parts = [`<div class="cascade-facts">${facts.join("")}</div>`,
+          '<p class="free-spin-head">Initial board</p>',boardHtml(spin.initialBoard,spin.initialTotalWays,steps[0],[])];
+        steps.forEach((step,index) => {
+          const wins = step.wins.map(win => `<span class="cascade-win">${art(win.symbol)}<span class="cascade-win-count">&times;${win.connectCount} · ways ${win.ways}${spin.type === "free" ? ` · &times;${win.multiplierApplied}` : ""}</span></span>`).join("");
+          parts.push(`<p class="free-spin-head cascade-step-head">Cascade ${index+1}: ${wins}</p>`);
+          parts.push(boardHtml(step.boardAfter,step.totalWaysAfter,steps[index+1],step.refilled));
+        });
+        container.innerHTML = parts.join("");
+      };
+      const hideResult = () => {
+        resultCard.hidden = true; summaryResult.textContent = "--";
+        baseSection.hidden = true; baseResult.innerHTML = "";
+        freeSection.hidden = true; freeResult.innerHTML = "";
+      };
+      const validateRequired = (serverSeed,clientSeed,nonceRaw) => {
+        get("nonce-error").textContent = "Nonce is required";
+        const fields = [[serverSeedInput,get("server-seed-error"),serverSeed === ""],
+          [clientSeedInput,get("client-seed-error"),clientSeed === ""],
+          [nonceInput,get("nonce-error"),nonceRaw === ""]];
+        fields.forEach(([input,error,missing]) => {input.classList.toggle("is-invalid",missing);error.hidden = !missing;});
+        return fields.every(([, ,missing]) => !missing);
+      };
+      const recompute = async () => {
+        const serverSeed = serverSeedInput.value, clientSeed = clientSeedInput.value, nonceRaw = nonceInput.value;
+        const token = ++latestToken;
+        if (!validateRequired(serverSeed,clientSeed,nonceRaw)) {hideResult();return;}
+        if (!nonceInput.checkValidity()) {
+          nonceInput.classList.add("is-invalid");
+          const error = get("nonce-error");
+          error.textContent = "Nonce must be a non-negative whole number";
+          error.hidden = false;
+          hideResult();
+          return;
+        }
+        get("nonce-error").textContent = "Nonce is required";
+        const nonce = Math.trunc(Number(nonceRaw));
+        try {
+          const round = await GanPharaohCat.verify(serverSeed,clientSeed,nonce,modeInput.value);
+          if (token !== latestToken) return;
+          summaryResult.textContent = round.mode === "buy" ? `Bought free spins · ${round.freeSpinCount} free spins played`
+            : !round.triggered ? `Base spin · ${round.isWin ? "win" : "no win"}` : `Base spin + ${round.freeSpinCount} free spins`;
+          const base = round.spins.find(spin => spin.type === "base");
+          baseSection.hidden = !base; baseResult.innerHTML = "";
+          if (base) {
+            const head = document.createElement("p"); head.className = "free-spin-head"; head.textContent = `Nonce ${base.nonce}`;
+            const body = document.createElement("div"); renderSpin(body,base); baseResult.append(head,body);
+          }
+          const free = round.spins.filter(spin => spin.type === "free");
+          freeSection.hidden = !free.length; freeResult.innerHTML = "";
+          if (free.length) {
+            freeLabel.textContent = round.mode === "buy" ? `Free Spins (${free.length} spins, bought)`
+              : `Free Spins (${free.length} spins, triggered by ${base.scatterCount} SCATTER)`;
+            free.forEach((spin,index) => {
+              const item = document.createElement("details"); item.className = "free-spin-item cascade-spin";
+              const title = document.createElement("summary"); title.className = "cascade-spin-title";
+              title.textContent = [`Free Spin ${index+1}`,`Nonce ${spin.nonce}`,
+                `${spin.isWin ? "Win" : "No win"} · multiplier ×${spin.multiplierAtStart}`,
+                spin.freeSpinsAdded ? `+${spin.freeSpinsAdded} spins` : ""].filter(Boolean).join(" · ");
+              const body = document.createElement("div"); item.append(title,body);
+              item.addEventListener("toggle",() => {if (item.open && !body.childElementCount) renderSpin(body,spin);});
+              freeResult.appendChild(item);
+            });
+          }
+          resultCard.hidden = false;
+        } catch (error) {
+          if (token === latestToken) hideResult();
+          throw error;
+        }
+      };
+      document.querySelector(".verify-form").addEventListener("submit",event => {event.preventDefault();recompute();});
+    })();
+  </script>
+  <script src="assets/js/seed_hash.js"></script>
+</body>
+</html>

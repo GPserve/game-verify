@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monster Party Fairness Verification | GanPlay Provably Fair</title>
+  <meta name="description" content="GanPlay Monster Party Provably Fair player self-service verification. Enter Server Seed / Client Seed / Nonce to replay every spin, cascade, multiplier ball and free spin of the round.">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <div class="page">
+    <header class="site-header">
+      <h1 class="site-title">Monster Party Fairness Verification</h1>
+      <p class="site-subtitle">GanPlay Provably Fair Player Self-Service Verification</p>
+    </header>
+
+    <main class="site-main">
+      <section class="verify-card">
+        <form class="verify-form" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="server-seed">Server Seed</label>
+            <input
+              class="form-input"
+              type="text"
+              id="server-seed"
+              name="server-seed"
+              placeholder="Enter the Server Seed for this round"
+              autocomplete="off"
+              spellcheck="false"
+            >
+            <span class="form-error" id="server-seed-error" hidden>Server Seed is required</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="server-seed-hash">Server Seed Hash <span class="form-label-optional">(optional)</span></label>
+            <input
+              class="form-input"
+              type="text"
+              id="server-seed-hash"
+              name="server-seed-hash"
+              placeholder="Enter the Server Seed Hash shown before this round"
+              autocomplete="off"
+              spellcheck="false"
+            >
+            <span class="form-hash-status" id="server-seed-hash-status" hidden></span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="client-seed">Client Seed</label>
+            <input
+              class="form-input"
+              type="text"
+              id="client-seed"
+              name="client-seed"
+              placeholder="Enter the Client Seed for this round"
+              autocomplete="off"
+              spellcheck="false"
+            >
+            <span class="form-error" id="client-seed-error" hidden>Client Seed is required</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="nonce">Nonce</label>
+            <input
+              class="form-input"
+              type="number"
+              id="nonce"
+              name="nonce"
+              placeholder="Enter the Nonce of the first spin in this round"
+              step="1"
+              min="0"
+              value="0"
+            >
+            <span class="form-error" id="nonce-error" hidden>Nonce is required</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="mode">Round Type</label>
+            <select class="form-input" id="mode" name="mode">
+              <option value="spin" selected>Spin</option>
+              <option value="buy">Buy Free Spins</option>
+            </select>
+          </div>
+
+          <button class="verify-button" type="submit">Verify / Calculate</button>
+        </form>
+      </section>
+
+      <section class="result-card" id="result-card" hidden>
+        <p class="result-label">Round</p>
+        <p class="result-value result-value--compact" id="summary-result">--</p>
+
+        <p class="board-legend cascade-legend">
+          <span class="cascade-legend-cleared">Red</span> = cleared in the next cascade
+          &middot; <span class="cascade-legend-dropped">Dashed</span> = dropped in by the previous cascade
+          <span class="cascade-legend-upgrade" hidden>
+            &middot; <span class="cascade-legend-upgraded">Green</span> = multiplier ball upgraded in the cascade
+          </span>
+        </p>
+
+        <div id="base-spin-section" hidden>
+          <p class="result-label result-label--spaced">Base Spin</p>
+          <div id="base-spin-result"></div>
+        </div>
+
+        <div id="free-spin-section" hidden>
+          <p class="result-label result-label--spaced" id="free-spin-label"></p>
+          <div id="free-spin-result"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>&copy; 2026 GanPlay. All rights reserved.</p>
+    </footer>
+  </div>
+
+  <script src="assets/js/cascade_replay.js"></script>
+  <script src="assets/js/monster_party.js"></script>
+  <script src="assets/js/cascade_page.js"></script>
+  <script>
+    GanCascadePage.mount({
+      game: GanMonsterParty,
+      imageDir: "assets/images/monster_party",
+      symbolImages: {
+        L01: "9", L02: "10", L03: "j", L04: "q", L05: "k", L06: "a",
+        H01: "h1_ghost", H02: "h2_frank", H03: "h3_cat", H04: "h4_pumpkin", S: "scatter",
+      },
+      multTier: (value) => value <= 4 ? "ball_low" : (value <= 9 ? "ball_mid" : "ball_high"),
+      texts: { bought: "Bought free spins", base: "Base spin",
+        baseWin: "Base spin · win", baseNoWin: "Base spin · no win" },
+      legendUpgrade: true,
+    });
+
+  </script>
+  <script src="assets/js/seed_hash.js"></script>
+</body>
+</html>
